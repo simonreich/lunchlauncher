@@ -108,7 +108,8 @@
 <p></p>
 
 <h2>Download latest script</h2>
-<p><a href="./lunchlauncher_skript.tar.gz">lunchlauncher_skript.tar.gz</a></p>
+<p>Latest stable version <a href="./lunchlauncher_skript.tar.gz">lunchlauncher_skript.tar.gz</a></p>
+<p>Git Repository <a href="https://fortknox.physik3.gwdg.de/gitweb/?p=lunchlauncher.git;a=summary">lunchlauncher</a></p>
 
 </body>
 </html>
