@@ -1,0 +1,72 @@
+--------------------------------------------------------------------------------
+Conversation Status
+--------------------------------------------------------------------------------
+
+Button                   PC
+
+1234567812               1234567812
+STATUS IAB      -->      ACK
+OK              <-/
+
+
+1234567812               1234567812
+ACK/NACK        <--      STATUS S B
+                \->      OK
+
+1234567812               1234567812
+STATUS IAB      <--      STATUS G
+                \->      ACK/NACK
+OK              <-/
+
+1234567812               1234567812
+ALIVE            -->     ACK
+OK               <-/
+
+1234567812               1234567812
+ACK              <--     ALIVE
+                 \->     OK
+
+--------------------------------------------------------------------------------
+Message Frame
+--------------------------------------------------------------------------------
+
+ 8 Byte  2 Byte
+/------\/\
+1234567812
+TEXT    AB
+
+TEXT = STATUS I, STATUS S, STATUS G, ALIVE, ACK, NACK          Command
+A = 0, 1                                                       Button Status
+B = 0, 1, 2                                                    LED Status
+
+STATUS I:
+Is send by Button and stands for "Status Is". It sends the current LED and 
+Button status.
+
+STATUS S:
+Is send by PC and stands for "Status Set". It sets the LED status to specific 
+state.
+
+STATUS G:
+Is send by PC and stands for "Status Get". It requests the information about the
+state of button and LED.
+
+ALIVE:
+Can be send by PC and Button. It requests information about the alive status of 
+the partner.
+
+A: Button Status
+0 Button open
+1 Button closed
+
+B: LED Status
+0 LED off
+1 LED permanently on
+2 LED blinking on
+
+--------------------------------------------------------------------------------
+Conversation time
+--------------------------------------------------------------------------------
+
+Each message is send until an expected answer is received or a limit of 5 is 
+reached. Between each resend you should wait 2 seconds.

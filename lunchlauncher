@@ -1,0 +1,238 @@
+#!/bin/bash
+#
+# Script to execute a local alarm based on a downloaded text file
+# 
+# Exits immediately on failure.
+#
+# This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright 2014 Simon Reich
+#
+# The file Kettle_whistle.ogg was downloaded from 
+#  <http://commons.wikimedia.org/wiki/File:Kettle_whistle.ogg> and was 
+#  created by the user Secretlondon under the license 
+#  Creative Commons Attribution-Share Alike 3.0 Unported.
+
+## Changelog ####################################################
+# 07.01.2014
+# Script created
+#
+# 05.03.2014
+# Python support added
+
+## Setup ########################################################
+# 1) Copy script to /usr/bin
+# cp ./lunchlauncher /usr/bin
+# 
+# 2) Set priviliges
+# chmod 755 /usr/bin/lunchlauncher
+# 
+# 3) Create cron job that executes the script
+#   # m		h		dom	mon	dow		user		command
+#   */2 	11-13	*	*	1-5		USERNAME	test -x /usr/bin/lunchlauncher && ( /usr/bin/lunchlauncher >> /var/log/lunchlauncher.log 2>&1 )
+# 	Every two minutes
+#			Between 11-13 o'clock
+#					Every day of month
+#						Every month
+#							On weekday (Monday - Friday)
+# Also creates log file at /var/log/lunchlauncher.log
+# 
+# 4) Configure script as you wish (see setup section below)
+#
+# 5) If you want to use sound (see below) you can use the 
+# file Kettle_whistle.ogg or Kopete_Event.ogg.
+# Create a .lunchlauncher folder in your home directory
+# mkdir ~/.lunchlauncher
+# Copy the file into the new folder
+# cp Kopete_Event.ogg ~/.lunchlauncher/
+# Adapt the path below accordingly.
+
+## Global configuration. ########################################
+## Cron uses HOME=/, set home to /home/USERNAME
+export HOME=/home/USERNAME
+export DISPLAY=:0
+
+## Server Address
+REMOTE_HOST="fortknox.physik3.gwdg.de/lunchlauncher"
+
+## Connection protocol: Do you want to use http (port 80) or https (port 443)
+## https is only used for encryption here, certification is disabled.
+#PROTOCOL="http"
+PROTOCOL="https"
+
+## Local root path for configuration files
+LOCAL_ROOTPATH="${HOME}/.lunchlauncher"
+
+## Alarm time
+## If the alarm is older than the specified amount of time in minutes it will not be displayed
+ALARM_TIME=10
+
+## In case of alarm: Open tab in browser
+## WARNING: if the script is run as root (see cron job above) the web browser will also be 
+## started as root user! Please change the username in the cron job and HOME variable accordingly!
+WEBBROWSER=FALSE
+WEBBROWSER_TAB="http://www.youtube.com/watch?v=U5PzcbOkDMo"
+## The command may be set to AUTO which will try to find your web browser, or to a specific program
+WEBBROWSER_COMMAND=AUTO
+#WEBBROWSER_COMMAND=chromium-browser
+#WEBBROWSER_COMMAND=rekonq
+WEBBROWSER_COMMAND=firefox
+
+## In case of alarm: Play local audio
+## Please make sure that the audio file exists at the location given below.
+## The command play needs the sox package! You can install it in Ubuntu using
+## sudo apt-get install sox
+## The python interface needs pygame to play sound. You can install it in Ubuntu using
+## sudo apt-get install python-pygame
+## WARNING: if the script is run as root (see cron job above) play  will also be 
+## started as root user! Please change the username in the cron job and HOME variable accordingly!
+AUDIO=TRUE
+AUDIO_FILE=${LOCAL_ROOTPATH}/Kettle_whistle.ogg
+#AUDIO_COMMAND=play
+AUDIO_COMMAND=python
+
+## In case of alarm: Display message
+## zenity looks nicer but needs the zenity package! xmessage should come with every X-Server.
+## You can install it in Ubuntu using
+## sudo apt-get install zenity
+MESSAGE=TRUE
+#MESSAGE_COMMAND="zenity"
+MESSAGE_COMMAND="xmessage"
+
+## In case of alarm: Display notification
+## The notification is handled by python, which needs notify2 to display a notification.
+## You can install it in Ubuntu using
+## sudo apt-get install python-notify2
+NOTIFICATION=TRUE
+
+## No configuration after this. #################################
+
+## Check if local root path for configuration exists
+if [[ ! -d ${LOCAL_ROOTPATH} ]]; then
+    mkdir -p ${LOCAL_ROOTPATH}
+	if [[ ! $? == 0 ]]; then
+		echo "There was an error creating the foler ${LOCAL_ROOTPATH}."
+		echo "This folder is needed for configuration files of the script. Please check if you have set the permissions correctly."
+	    echo "Exiting now."
+		exit 1
+	fi
+fi
+
+## Download new data
+REMOTE_HOST_ADDRESS="${PROTOCOL}://${REMOTE_HOST}/launchlist.dat1"
+LOCAL_LIST_NEW=${LOCAL_ROOTPATH}/launchlist_new.dat
+LOCAL_LIST_OLD=${LOCAL_ROOTPATH}/launchlist.dat
+wget --no-check-certificate -q -O ${LOCAL_LIST_NEW} ${REMOTE_HOST_ADDRESS}
+if [[ $? != 0 ]]; then
+	echo "Download of new data from ${REMOTE_HOST_ADDRESS} failed."
+    echo "Exiting now."
+	exit 1
+fi
+
+## Compare to old data
+if [[ ! -w ${LOCAL_LIST_OLD} ]]; then
+	touch ${LOCAL_LIST_OLD}
+fi
+for list in `diff ${LOCAL_LIST_NEW} ${LOCAL_LIST_OLD} | grep '<' | sed 's/^..//'`
+do
+	CURRENTTIME=`date "+%s"`
+	ALARM=`echo $list | awk 'BEGIN { FS = ";" } {
+		if (currenttime-$1 <= alarmtime*60)
+		{
+			printf ("TRUE\n");
+		} else {
+			printf ("FALSE\n");
+		};
+	}' currenttime=${CURRENTTIME} alarmtime=${ALARM_TIME}`
+
+	if [[ ${ALARM} == "TRUE" ]]; then
+		## Output to terminal
+		echo $list | awk 'BEGIN { FS = ";" } {
+				printf ("%s said %i minutes ago: \n%s\n", $2, (currenttime-$1)/60, $3);
+		}' currenttime=${CURRENTTIME} alarmtime=${ALARM_TIME}
+
+		## Check for web browser
+		if [[ ${WEBBROWSER} == "TRUE" ]];then
+			if [[ ${WEBBROWSER_COMMAND} == "AUTO" ]]; then
+				if [[ -n $BROWSER ]]; then
+					(${BROWSER} ${WEBBROWSER_TAB}) > /dev/null
+				elif which xdg-open > /dev/null; then
+					xdg-open "${WEBBROWSER_TAB}"
+				elif which gnome-open > /dev/null; then
+					gnome-open "${WEBBROWSER_TAB}"
+				else
+					echo "Could not detect the web browser to use."
+				fi
+			elif [[ ${WEBBROWSER_COMMAND} == "firefox" ]]; then
+				(${WEBBROWSER_COMMAND} -new-tab ${WEBBROWSER_TAB}) > /dev/null
+			elif [[ ${WEBBROWSER_COMMAND} == "rekonq" ]]; then
+				(${WEBBROWSER_COMMAND} ${WEBBROWSER_TAB}) > /dev/null
+			elif [[ ${WEBBROWSER_COMMAND} == "chromium-browser" ]]; then
+				(${WEBBROWSER_COMMAND} ${WEBBROWSER_TAB}) > /dev/null
+			fi
+		fi
+
+		## Check for message
+		if [[ ${MESSAGE} == "TRUE" ]]; then
+			MESSAGE_TEXT=`echo $list | awk 'BEGIN { FS = ";" } {
+				printf ("%s said %i minutes ago: %s", $2, (currenttime-$1)/60, $3);
+			}' currenttime=${CURRENTTIME} alarmtime=${ALARM_TIME}`
+
+			if [[ ${MESSAGE_COMMAND} == "zenity" ]]; then
+				zenity --info --text="${MESSAGE_TEXT}" &
+			else
+				xmessage -center "${MESSAGE_TEXT}" &
+			fi
+		fi
+
+		## Check for notification
+		if [[ ${NOTIFICATION} == "TRUE" ]]; then
+			python << END
+import pynotify
+pynotify.init("LunchLauncher")
+notice = pynotify.Notification("Lunch Launcher", "${MESSAGE_TEXT}")
+notice.show()
+END
+		fi
+
+		## Check for audio
+		if [[ ${AUDIO} == "TRUE" ]]; then
+			if [[ -r ${AUDIO_FILE} ]]; then
+				if [[ ${AUDIO_COMMAND} == "python" ]]; then
+					python << END
+import pygame
+pygame.init()
+
+pygame.mixer.music.load("${AUDIO_FILE}")
+pygame.mixer.music.play(2)
+pygame.time.delay(2000)
+pygame.quit ()
+END
+				else
+					(${AUDIO_COMMAND} ${AUDIO_FILE})& > /dev/null
+				fi
+			fi
+		fi
+	fi
+
+	COPY=TRUE
+done;
+
+## Copy new list to old list
+if [[ ${COPY} == "TRUE" ]]; then
+	cp -f ${LOCAL_LIST_NEW} ${LOCAL_LIST_OLD}
+fi
+
+## Exiting normal
+exit 0
