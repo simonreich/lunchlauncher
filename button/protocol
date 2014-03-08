@@ -5,25 +5,25 @@ Conversation Status
 Sensor                   PC
 
 1234567812345678         1234567812345678
-STATUS  AB         -->   ACK
+STATUS  AB     C   -->   ACK            C
 END                <-/
 
 
 1234567812345678         1234567812345678
-ACK/NACK           <--   SET     AB
+ACK/NACK       C   <--   SET     AB     C
                    \->   END
 
 1234567812345678         1234567812345678
-STATUS  AB         <--   GET     
-                   \->   ACK/NACK
+STATUS  AB     C   <--   GET            C
+                   \->   ACK/NACK       C
 END                <-/
 
 1234567812345678         1234567812345678
-ALIVE              -->   ACK
+ALIVE          C   -->   ACK            C
 END                <-/
 
 1234567812345678         1234567812345678
-ACK                <--   ALIVE
+ACK            C   <--   ALIVE          C
                    \->   END
 
 --------------------------------------------------------------------------------
@@ -33,12 +33,13 @@ Message Frame
  8 Byte  8 Byte
 /------\/------\
 1234567812345678
-TEXT    DATA
-STRING  AB
+STRING  DATA
+TEXT    AB     C
 
 TEXT = STATUS, SET, GET, ALIVE, ACK, NACK                      Command
 A = 0, 1                                                       Button Status
 B = 0, 1, 2                                                    LED Status
+C = 0 - FF                                                     Checksum
 
 STATUS:
 Is send by Button and stands for "Status Is". It sends the current LED and 
@@ -63,7 +64,10 @@ A: Button Status
 B: LED Status
 0 LED off
 1 LED permanently on
-2 LED blinking on
+2 LED blinking o
+
+C: Checksum
+Inverse of sum of all bytes with the checksum byte set to zero.
 
 --------------------------------------------------------------------------------
 Conversation time
