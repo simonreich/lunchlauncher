@@ -233,6 +233,7 @@
 	<p>Add Mail: <input type="text" name="mailaddress" value=""/></p>
 	<p>Remove Mail: <input type="text" name="mailaddress_remove" value=""/></p>
 	<p><input type="submit" value="Submit" /></p>
+</form>
 
 <h2>Mail-Alert List</h2>
 <?php
@@ -250,8 +251,6 @@
 
 <h2>Download latest script</h2>
 <p>Please use the public available <a href="https://fortknox.physik3.gwdg.de/gitweb/?p=lunchlauncher.git;a=summary">git Repository</a>.</p>
-
-</form>
 
 </body>
 </html>
