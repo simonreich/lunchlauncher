@@ -9,15 +9,72 @@
 <body>
 
 <?php
-	// delete old messages and append new ones
-
 	// set global variables
-	$file = './launchlist.dat';
+	$fileLunchlist = './launchlist.dat';
+	$fileMail = './maillist.dat';
+
 	$date = new DateTime ();
 	$timestamp = $date->getTimestamp ();
 
 	// messages older then $minutes will be deleted
 	$minutes = 60;
+
+
+
+	// set Name and text to be displayed, load from Cookie
+	if ($_COOKIE["LunchLauncherName"] != "")
+	{
+		$setname = $_COOKIE["LunchLauncherName"];
+	} else {
+		$setname = gethostbyaddr($_SERVER['REMOTE_ADDR']);
+	};
+	if ($_COOKIE["LunchLauncherText"] != "")
+	{
+		$settext = $_COOKIE["LunchLauncherText"];
+	} else {
+		$settext = "Lunch";
+	};
+
+
+
+	// Get new messages from either POST and GET and save into array
+
+	// set mail notification to false and set it to true if new messages are here...
+	$mailNotification =false;
+
+	// check if there are information in the url = GET
+	$newname = $_GET["name"];
+	$newtext = $_GET["text"];
+	if ($newname != "" && $newtext != "" )
+	{
+		$newtextArray[$newname] = $newtext
+
+		// send mail later
+		$mailNotification = true;
+	};
+
+	// check if there are information posted in the form
+	$newname = $_POST["name"];
+	$newtext = $_POST["text"];
+	if ($newname != "" && $newtext != "" )
+	{
+		$newtextArray[$newname] = $newtext
+
+		// User has visited the page - set cookie, valid for 30 days
+		setcookie("LunchLauncherName", $newname, time()+3600*24*30, "/lunchlauncher/", "fortknox.physik3.gwdg.de", FALSE, TRUE);
+		setcookie("LunchLauncherText", $newtext, time()+3600*24*30, "/lunchlauncher/", "fortknox.physik3.gwdg.de", FALSE, TRUE);
+
+		// update display text
+		$setname = $newname;
+		$settext = $newtext;
+
+		// send mail later
+		$mailNotification = true;
+	};
+
+
+
+	// read old messages, delete old ones, and append new ones
 
 	// delete old messages in file
 	// open file
@@ -44,42 +101,10 @@
 		fclose($handle);
 	};
 
-	// set Name and text to be displayed
-	if ($_COOKIE["LunchLauncherName"] != "")
+	// Append new messages
+	foreach ($newtextArray as $newname => $newtext)
 	{
-		$setname = $_COOKIE["LunchLauncherName"];
-	} else {
-		$setname = gethostbyaddr($_SERVER['REMOTE_ADDR']);
-	};
-	if ($_COOKIE["LunchLauncherText"] != "")
-	{
-		$settext = $_COOKIE["LunchLauncherText"];
-	} else {
-		$settext = "Lunch";
-	};
-
-	// check if there are information in the url
-	$newname = $_GET["name"];
-	$newtext = $_GET["text"];
-	if ($newname != "" && $newtext != "" )
-	{
-		$text = "${text}$timestamp;$newname;$newtext\n";
-	};
-
-	// check if there are information posted in the form
-	$newname = $_POST["name"];
-	$newtext = $_POST["text"];
-	if ($newname != "" && $newtext != "" )
-	{
-		$text = "${text}$timestamp;$newname;$newtext\n";
-
-		// set cookie
-		setcookie("LunchLauncherName", $newname, time()+3600*24*30, "/lunchlauncher/", "fortknox.physik3.gwdg.de", FALSE, TRUE);
-		setcookie("LunchLauncherText", $newtext, time()+3600*24*30, "/lunchlauncher/", "fortknox.physik3.gwdg.de", FALSE, TRUE);
-
-		// update display text
-		$setname = $newname;
-		$settext = $newtext;
+		$text = "${text}$timestamp;$newname$;$newtext";
 	};
 
 	// write results to file
@@ -87,41 +112,30 @@
 
 
 
-	// Mail Alert
-
-	// set global variables
-	$filemail = './maillist.dat';
-
-	// check if there are information in the url
-	$newmail_GET = $_GET["mailaddress"];
-	if ($newmail_GET != "")
-	{
-		$maillist = "${maillist}${newmail_GET}\n";
-	};
-
-	// check if there are information posted
-	$newmail_POST = $_POST["mailaddress"];
-	if ($newmail_POST != "")
-	{
-		$maillist = "${maillist}${newmail_POST}\n";
-	};
+	// Mail Notification
 
 	// check if we want to remove an email address
-	$mailaddress_remove_POST = $_POST["mailaddress_remove"];
-	$mailaddress_remove_GET = $_GET["mailaddress_remove"];
+	$mailRemove_POST = $_POST["mailremove"];
+	$mailRemove_GET = $_GET["mailremove"];
 
-	// open file
-	$handle = @fopen ($filemail, "r");
+	// check if we want to add an email
+	$mailAdd_POST = $_POST["mailadd"];
+	$mailAdd_GET = $_GET["mailadd"];
+
+	$maillist = "${maillist}${mailAdd_POST}${mailAdd_GET}";
+
+	// open file and read all mail addresses
+	$handle = @fopen ($fileMail, "r");
 	if ($handle)
 	{
 		// read line by line
 		while (($buffer = fgets ($handle, 4096)) !== false)
 		{
 			// check if mail address already exists
-			if (${buffer} != "${newmail_POST}\n" && ${buffer} != "${newmail_GET}\n")
+			if (${buffer} != "${mailAdd_POST}\n" && ${buffer} != "${mailAdd_GET}\n")
 			{
 				// check if mail address wants to be removed
-				if (${buffer} != "${mailaddress_remove_POST}\n" && ${buffer} != "${mailaddress_remove_GET}\n")
+				if (${buffer} != "${mailRemove_POST}\n" && ${buffer} != "${mailRemove_GET}\n")
 				{
 					$maillist = "${maillist}$buffer";
 				};
@@ -136,74 +150,29 @@
 	};
 
 	// write results to file
-	file_put_contents ($filemail, $maillist, LOCK_EX);
+	file_put_contents ($fileMail, $maillist, LOCK_EX);
 
-
-
-	// Send Mails
-
-	// set global variables
-	$fileOld = './launchlist_old.dat';
-
-	// open file
-	$handle = @fopen ($fileOld, "r");
-	if ($handle)
+	// send mails
+	if ($mailNotification == true)
 	{
-		// read line by line
-		while (($buffer = fgets ($handle, 4096)) !== false)
+		// generate message text
+		$mailtext = "Dear colleagues,\n\nthe Lunch Launcher has been launched!\n\n";
+		foreach ($newtextArray as $newname => $newtext)
 		{
-			// part line into array
-			$tags = explode(';', $buffer);
-
-			// check for time
-			if ((int)(($timestamp-$tags[0])/60) <= (int)$minutes)
-			{
-				$textOld = "${textOld}$tags[0];$tags[1];$tags[2]";
-			};
+			$mailtext = "${mailtext}$[newname} said: \"${newtext}\"\n";
 		};
+		$mailtext = "${mailtext}\n\nBon appetit,\n   The Lunch Launcher";
 
-		if (!feof($handle))
-		{
-			echo "Fehler: unerwarteter fgets() Fehlschlag\n";
-		};
-		fclose($handle);
-	};
-
-	$sendMail = "true";
-	foreach(preg_split("/((\r?\n)|(\r\n?))/", $text) as $line)
-	{
-		foreach(preg_split("/((\r?\n)|(\r\n?))/", $textOld) as $lineOld)
-		{
-			// does the string contain ';'? Basi check for emptiness of weird stuff...
-			if (strpos ($text, ';') !== false)
-			{
-				if ($text == $textOld)
-				{
-					$sendMail = "false";
-				};
-			} else {
-				$sendMail = "false";
-			};
-		};
-	};
-
-	// send the mail to the list
-	if ($sendMail == "true")
-	{
+		// send the mail to the list
 		foreach(preg_split("/((\r?\n)|(\r\n?))/", $maillist) as $maillistLine)
 		{
 			// the foreach gives an almost empty list... So make a check for '@'
 			if (strpos ($maillistLine, '@') !== false)
 			{
-				mail ($maillistLine, "Lunch has been launched!", "Dear colleagues,\n\nthe Lunch Launcher has been launched!\n\n${newname} said: \"${newtext}\".\n\nBon appetit,\n   The Lunch Launcher");
-			}
+				mail ($maillistLine, "Lunch has been launched!", $mailtext);
+			};
 		};
 	};
-
-	// All alarms should have been sent by now
-	// write results to file
-	file_put_contents ($fileOld, $text, LOCK_EX);
-
 ?>
 
 <h1>Lunch Launcher</h1>
@@ -230,8 +199,8 @@
 <h2>Register for Mail-Alert</h2>
 <p>Your mail address will be stored unencrypted and world readable!</p>
 <form action="index.php" method="post">
-	<p>Add Mail: <input type="text" name="mailaddress" value=""/></p>
-	<p>Remove Mail: <input type="text" name="mailaddress_remove" value=""/></p>
+	<p>Add Mail: <input type="text" name="mailadd" value=""/></p>
+	<p>Remove Mail: <input type="text" name="mailremove" value=""/></p>
 	<p><input type="submit" value="Submit" /></p>
 </form>
 
