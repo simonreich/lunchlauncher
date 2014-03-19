@@ -173,7 +173,7 @@
 		{
 			$mailtext = "${mailtext}${newname} said: \"${newtext}\"\n";
 		};
-		$mailtext = "${mailtext}\n\nBon appetit,\n   The Lunch Launcher";
+		$mailtext = "${mailtext}\nBon appetit,\n   The Lunch Launcher";
 
 		// send the mail to the list
 		foreach(preg_split("/((\r?\n)|(\r\n?))/", $maillist) as $maillistLine)
@@ -217,7 +217,7 @@
 	<p><input type="submit" value="Submit" /></p>
 </form>
 
-<h2>Mail-Alert List</h2>
+<h2>Mail Notification List</h2>
 <?php
 	if ($maillist == "")
 	{
