@@ -10,18 +10,33 @@
 
 <?php
 	// set global variables
+
+	// The launch list is saved here. Clients must be able to download this file.
 	$fileLunchlist = './launchlist.dat';
+
+	// The mail list is saved here. Clients must not be able to download this file. Check the .htaccess file!
 	$fileMail = './maillist.dat';
 
+	// Address of the server. It is used in the mail notification.
+	$serverAddress = 'https://fortknox.physik3.gwdg.de/lunchlauncher';
+
+	// Name of this script. It is used in the mail notification and POST request / submit button.
+	$serverFilename = 'index.php';
+
+	// Messages older then $minutes will be delted upon calling this script.
+	$minutes = 60;
+
+	// Time settings. Please be aware that there is no time managemengt regarding server and client. NTP use is encouraged.
 	$date = new DateTime ();
 	$timestamp = $date->getTimestamp ();
 
-	// messages older then $minutes will be deleted
-	$minutes = 60;
+
+
+	// No configuration after this.
 
 
 
-	// set Name and text to be displayed, load from Cookie
+	// set Name and text to be displayed in form: load from Cookie or set do default value
 	if ($_COOKIE["LunchLauncherName"] != "")
 	{
 		$setname = $_COOKIE["LunchLauncherName"];
@@ -168,7 +183,7 @@
 	if ($mailNotification == true)
 	{
 		// generate message text
-		$mailtext = "Dear colleagues,\n\nthe Lunch Launcher has been launched!\n\n";
+		$mailtext = "Dear colleagues,\n\nthe Lunch Launcher has been launched!\n";
 		foreach ($newtextArray as $newname => $newtext)
 		{
 			$mailtext = "${mailtext}${newname} said: \"${newtext}\"\n";
@@ -181,7 +196,7 @@
 			// the foreach gives an almost empty list... So make a check for '@'
 			if (strpos ($maillistLine, '@') !== false)
 			{
-				$mailtextPS = "\n\n\nPS: You can unsubscribe by visiting https://fortknox.physik3.gwdg.de/lunchlauncher/index.php?mailremove=$maillistLine";
+				$mailtextPS = "\n\n\nPS: You can launch lunch at ${serverAddress} or unsubscribe by visiting ${serverAddress}/${serverFilename}?mailremove=$maillistLine";
 				mail ($maillistLine, "Lunch has been launched!", "${mailtext}${mailtextPS}");
 			};
 		};
@@ -191,7 +206,7 @@
 <h1>Lunch Launcher</h1>
 
 <h2>Add Launch</h2>
-<form action="index.php" method="post">
+<form action="<?php echo $serverFilename; ?>" method="post">
 	<p>Name: <input type="text" name="name" value="<?php echo $setname; ?>"/></p>
  	<p>Launch: <input type="text" name="text" value="<?php echo $settext; ?>"/></p>
 	<p><input type="submit" value="Submit" /></p>
@@ -211,7 +226,7 @@
 
 <h2>Register for Mail Notification</h2>
 <p>Your mail address will be stored unencrypted and world readable!</p>
-<form action="index.php" method="post">
+<form action="<?php echo $serverFilename; ?>" method="post">
 	<p>Add Mail: <input type="text" name="mailadd" value=""/></p>
 	<p>Remove Mail: <input type="text" name="mailremove" value=""/></p>
 	<p><input type="submit" value="Submit" /></p>
