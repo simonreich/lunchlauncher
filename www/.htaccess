@@ -5,11 +5,6 @@ Order Allow,Deny
 Deny from all
 </Files>
 
-<Files launchlist.dat>
-Order Allow,Deny
-Deny from all
-</Files>
-
 <Files maillist.dat>
 Order Allow,Deny
 Deny from all
