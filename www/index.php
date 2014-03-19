@@ -47,7 +47,7 @@
 	$newtext = $_GET["text"];
 	if ($newname != "" && $newtext != "" )
 	{
-		$newtextArray[$newname] = $newtext
+		$newtextArray[$newname] = $newtext;
 
 		// send mail later
 		$mailNotification = true;
@@ -58,7 +58,7 @@
 	$newtext = $_POST["text"];
 	if ($newname != "" && $newtext != "" )
 	{
-		$newtextArray[$newname] = $newtext
+		$newtextArray[$newname] = $newtext;
 
 		// User has visited the page - set cookie, valid for 30 days
 		setcookie("LunchLauncherName", $newname, time()+3600*24*30, "/lunchlauncher/", "fortknox.physik3.gwdg.de", FALSE, TRUE);
@@ -78,7 +78,7 @@
 
 	// delete old messages in file
 	// open file
-	$handle = @fopen ($file, "r");
+	$handle = @fopen ($fileLunchlist, "r");
 	if ($handle)
 	{
 		// read line by line
@@ -104,25 +104,35 @@
 	// Append new messages
 	foreach ($newtextArray as $newname => $newtext)
 	{
-		$text = "${text}$timestamp;$newname$;$newtext";
+		if ($newname !== "" && $newtext !== "")
+		{
+			$text = "${text}$timestamp;$newname;$newtext\n";
+		};
 	};
 
 	// write results to file
-	file_put_contents ($file, $text, LOCK_EX);
+	file_put_contents ($fileLunchlist, $text, LOCK_EX);
 
 
 
 	// Mail Notification
 
 	// check if we want to remove an email address
-	$mailRemove_POST = $_POST["mailremove"];
-	$mailRemove_GET = $_GET["mailremove"];
+	$mailRemove[] = $_POST["mailremove"];
+	$mailRemove[] = $_GET["mailremove"];
 
 	// check if we want to add an email
-	$mailAdd_POST = $_POST["mailadd"];
-	$mailAdd_GET = $_GET["mailadd"];
+	$mailAdd[] = $_POST["mailadd"];
+	$mailAdd[] = $_GET["mailadd"];
 
-	$maillist = "${maillist}${mailAdd_POST}${mailAdd_GET}";
+	foreach ($mailAdd as $newmail)
+	{
+		// sanity check
+		if (strpos ($newmail, '@') !== false)
+		{
+			$maillist = "${maillist}$newmail\n";
+		};
+	};
 
 	// open file and read all mail addresses
 	$handle = @fopen ($fileMail, "r");
@@ -131,11 +141,13 @@
 		// read line by line
 		while (($buffer = fgets ($handle, 4096)) !== false)
 		{
+			$bufferSearch = str_replace (array("\n","\r"), '', $buffer);
+
 			// check if mail address already exists
-			if (${buffer} != "${mailAdd_POST}\n" && ${buffer} != "${mailAdd_GET}\n")
+			if (!in_array (${bufferSearch}, $mailAdd))
 			{
-				// check if mail address wants to be removed
-				if (${buffer} != "${mailRemove_POST}\n" && ${buffer} != "${mailRemove_GET}\n")
+				// check if mail should be removed from list
+				if (!in_array (${bufferSearch}, $mailRemove))
 				{
 					$maillist = "${maillist}$buffer";
 				};
@@ -159,7 +171,7 @@
 		$mailtext = "Dear colleagues,\n\nthe Lunch Launcher has been launched!\n\n";
 		foreach ($newtextArray as $newname => $newtext)
 		{
-			$mailtext = "${mailtext}$[newname} said: \"${newtext}\"\n";
+			$mailtext = "${mailtext}${newname} said: \"${newtext}\"\n";
 		};
 		$mailtext = "${mailtext}\n\nBon appetit,\n   The Lunch Launcher";
 
@@ -169,7 +181,8 @@
 			// the foreach gives an almost empty list... So make a check for '@'
 			if (strpos ($maillistLine, '@') !== false)
 			{
-				mail ($maillistLine, "Lunch has been launched!", $mailtext);
+				$mailtextPS = "\n\n\nPS: You can unsubscribe by visiting https://fortknox.physik3.gwdg.de/lunchlauncher/index.php?mailremove=$maillistLine";
+				mail ($maillistLine, "Lunch has been launched!", "${mailtext}${mailtextPS}");
 			};
 		};
 	};
@@ -196,7 +209,7 @@
 	};
 ?> 
 
-<h2>Register for Mail-Alert</h2>
+<h2>Register for Mail Notification</h2>
 <p>Your mail address will be stored unencrypted and world readable!</p>
 <form action="index.php" method="post">
 	<p>Add Mail: <input type="text" name="mailadd" value=""/></p>
