@@ -245,7 +245,6 @@
 <p>Your mail address will be stored unencrypted and world readable!</p>
 <form action="<?php echo $serverFilename; ?>" method="post">
 	<p>Add Mail: <input type="text" name="mailadd" value=""/></p>
-	<p>Remove Mail: <input type="text" name="mailremove" value=""/></p>
 	<p><input type="submit" value="Submit" /></p>
 </form>
 
@@ -255,11 +254,17 @@
 	{
 		printf ("List is empty\n");
 	} else {
-		$maillistprint = nl2br($maillist);
-		$maillistprint = str_replace(array("\n","\r"), '', $maillistprint);
-		$maillistprint = str_replace ("@" , " [at] " , $maillistprint);
-		$maillistprint = str_replace ('.' , ' [dot] ' , $maillistprint);
-		echo $maillistprint;
+		foreach(preg_split("/((\r?\n)|(\r\n?))/", $maillist) as $maillistLine)
+		{
+			// the foreach gives an almost empty list... So make a check for '@'
+			if (strpos ($maillistLine, '@') !== false)
+			{
+				$maillistPrint = str_replace(array("\n","\r"), '', $maillistLine);
+				$maillistPrint = str_replace ("@" , " [at] " , $maillistPrint);
+				$maillistPrint = str_replace ('.' , ' [dot] ' , $maillistPrint);
+				echo "$maillistPrint <a href=\"${serverAddress}/${serverFilename}?mailremove=$maillistLine\" title=\"Removes this mail address from the notification list.\">(delete)</a><br>";
+			};
+		};
 	};
 ?> 
 
