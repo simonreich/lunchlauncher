@@ -213,7 +213,7 @@
 			// the foreach gives an almost empty list... So make a check for '@'
 			if (strpos ($maillistLine, '@') !== false)
 			{
-				$mailtextPS = "\n\n\nPS: You can launch lunch at ${serverAddress} or unsubscribe by visiting ${serverAddress}/${serverFilename}?mailremove=$maillistLine";
+				$mailtextPS = "\n\n\nPS: You can launch lunch at ${serverAddress} or unsubscribe by\nvisiting ${serverAddress}/${serverFilename}?mailremove=$maillistLine";
 				mail ($maillistLine, "Lunch has been launched!", "${mailtext}${mailtextPS}");
 			};
 		};
