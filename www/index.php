@@ -268,15 +268,20 @@
 	};
 ?> 
 
-<h2>Download latest script</h2>
-<p>Please use the public available <a href="https://fortknox.physik3.gwdg.de/gitweb/?p=lunchlauncher.git;a=summary">git Repository</a>.</p>
-
 <h2>Help</h2>
-<p>The following HTTP GET variables exist and can be used in the URL to execute commans:</p>
+<h3>Download latest script</h3>
+<p>Please use the public available <a href="https://fortknox.physik3.gwdg.de/gitweb/?p=lunchlauncher.git;a=summary">git Repository</a>.</p>
+<h3>Linux Client</h3>
+<p>There is a Linux client available in the git repository. It utilizes crontab to check for new Launches and is self explanatory.</p>
+<h3>URL Formatting</h3>
+<p>The following HTTP GET variables exist and can be used in the URL to execute commands:</p>
 <ul>
 	<li>Use the following to add a Launch using the name "ExampleName" and the text "ExampleText":<br><?php echo "${serverAddress}/${serverFilename}?name=ExampleName&text=ExampleText"; ?></li>
 	<li>Use the following to add the mail address "user@example.org" to the notification list:<br><?php echo "${serverAddress}/${serverFilename}?mailadd=user@example.org"; ?></li>
 	<li>Use the following to remove the mail address "user@example.org" to the notification list:<br><?php echo "${serverAddress}/${serverFilename}?mailremove=user@example.org"; ?></li>
 </ul>
+<p>Example: Add a Launch from a Linux terminal using wget:<br>wget --no-check-certificate <?php echo "${serverAddress}/${serverFilename}?name=ExampleName&text=ExampleText"; ?></p>
+
+</p>
 </body>
 </html>
