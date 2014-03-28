@@ -75,8 +75,19 @@
 	$mailNotification =false;
 
 	// check if there are information in the url = GET
-	$newname = $_GET["name"];
-	$newtext = $_GET["text"];
+	if (isset ($_GET["name"]))
+	{
+		$newname = $_GET["name"];
+	} else {
+		$newname = '';
+	};
+	if (isset ($_GET["text"]))
+	{
+		$newtext = $_GET["text"];
+	} else {
+		$newtext = '';
+	};
+	$newtextArray = (array) null;
 	if ($newname != "" && $newtext != "" )
 	{
 		$newtextArray[$newname] = $newtext;
@@ -86,8 +97,18 @@
 	};
 
 	// check if there are information posted in the form
-	$newname = $_POST["name"];
-	$newtext = $_POST["text"];
+	if (isset ($_POST["name"]))
+	{
+		$newname = $_POST["name"];
+	} else {
+		$newname = '';
+	};
+	if (isset ($_POST["text"]))
+	{
+		$newtext = $_POST["text"];
+	} else {
+		$newtext = '';
+	};
 	if ($newname != "" && $newtext != "" )
 	{
 		$newtextArray[$newname] = $newtext;
@@ -111,6 +132,7 @@
 	// delete old messages in file
 	// open file
 	$handle = @fopen ($fileLunchlist, "r");
+	$text = '';
 	if ($handle)
 	{
 		// read line by line
@@ -150,13 +172,20 @@
 	// Mail Notification
 
 	// check if we want to remove an email address
-	$mailRemove[] = $_POST["mailremove"];
-	$mailRemove[] = $_GET["mailremove"];
+	$mailRemove = (array) null;
+	$mailAdd = (array) null;
+	if (isset ($_POST["mailremove"]))
+		$mailRemove[] = $_POST["mailremove"];
+	if (isset ($_GET["mailremove"]))
+		$mailRemove[] = $_GET["mailremove"];
 
 	// check if we want to add an email
-	$mailAdd[] = $_POST["mailadd"];
-	$mailAdd[] = $_GET["mailadd"];
+	if (isset ($_POST["mailadd"]))
+		$mailAdd[] = $_POST["mailadd"];
+	if (isset ($_GET["mailadd"]))
+		$mailAdd[] = $_GET["mailadd"];
 
+	$maillist = '';
 	foreach ($mailAdd as $newmail)
 	{
 		// sanity check
@@ -176,10 +205,10 @@
 			$bufferSearch = str_replace (array("\n","\r"), '', $buffer);
 
 			// check if mail address already exists
-			if (!in_array (${bufferSearch}, $mailAdd))
+			if (!in_array ($bufferSearch, $mailAdd))
 			{
 				// check if mail should be removed from list
-				if (!in_array (${bufferSearch}, $mailRemove))
+				if (!in_array ($bufferSearch, $mailRemove))
 				{
 					$maillist = "${maillist}$buffer";
 				};
@@ -213,7 +242,7 @@
 			// the foreach gives an almost empty list... So make a check for '@'
 			if (strpos ($maillistLine, '@') !== false)
 			{
-				$mailtextPS = "\n\n\nPS: You can launch lunch at ${serverAddress} or unsubscribe by visiting ${serverAddress}/${serverFilename}?mailremove=$maillistLine";
+				$mailtextPS = "\n\n\nPS: You can launch lunch at ${serverAddress} or unsubscribe by\nvisiting ${serverAddress}/${serverFilename}?mailremove=$maillistLine";
 				mail ($maillistLine, "Lunch has been launched!", "${mailtext}${mailtextPS}");
 			};
 		};
@@ -245,7 +274,6 @@
 <p>Your mail address will be stored unencrypted and world readable!</p>
 <form action="<?php echo $serverFilename; ?>" method="post">
 	<p>Add Mail: <input type="text" name="mailadd" value=""/></p>
-	<p>Remove Mail: <input type="text" name="mailremove" value=""/></p>
 	<p><input type="submit" value="Submit" /></p>
 </form>
 
@@ -255,16 +283,34 @@
 	{
 		printf ("List is empty\n");
 	} else {
-		$maillistprint = nl2br($maillist);
-		$maillistprint = str_replace(array("\n","\r"), '', $maillistprint);
-		$maillistprint = str_replace ("@" , " [at] " , $maillistprint);
-		$maillistprint = str_replace ('.' , ' [dot] ' , $maillistprint);
-		echo $maillistprint;
+		foreach(preg_split("/((\r?\n)|(\r\n?))/", $maillist) as $maillistLine)
+		{
+			// the foreach gives an almost empty list... So make a check for '@'
+			if (strpos ($maillistLine, '@') !== false)
+			{
+				$maillistPrint = str_replace(array("\n","\r"), '', $maillistLine);
+				$maillistPrint = str_replace ("@" , " [at] " , $maillistPrint);
+				$maillistPrint = str_replace ('.' , ' [dot] ' , $maillistPrint);
+				echo "$maillistPrint <a href=\"${serverAddress}/${serverFilename}?mailremove=$maillistLine\" title=\"Removes this mail address from the notification list.\">(delete)</a><br>";
+			};
+		};
 	};
 ?> 
 
-<h2>Download latest script</h2>
+<h2>Help</h2>
+<h3>Download latest script</h3>
 <p>Please use the public available <a href="https://fortknox.physik3.gwdg.de/gitweb/?p=lunchlauncher.git;a=summary">git Repository</a>.</p>
+<h3>Linux Client</h3>
+<p>There is a Linux client available in the git repository. It utilizes crontab to check for new Launches and is self explanatory.</p>
+<h3>URL Formatting</h3>
+<p>The following HTTP GET variables exist and can be used in the URL to execute commands:</p>
+<ul>
+	<li>Use the following to add a Launch using the name "ExampleName" and the text "ExampleText":<br><?php echo "${serverAddress}/${serverFilename}?name=ExampleName&text=ExampleText"; ?></li>
+	<li>Use the following to add the mail address "user@example.org" to the notification list:<br><?php echo "${serverAddress}/${serverFilename}?mailadd=user@example.org"; ?></li>
+	<li>Use the following to remove the mail address "user@example.org" to the notification list:<br><?php echo "${serverAddress}/${serverFilename}?mailremove=user@example.org"; ?></li>
+</ul>
+<p>Example: Add a Launch from a Linux terminal using wget:<br>wget --no-check-certificate <?php echo "${serverAddress}/${serverFilename}?name=ExampleName&text=ExampleText"; ?></p>
 
+</p>
 </body>
 </html>
