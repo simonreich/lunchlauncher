@@ -48,7 +48,14 @@
 #warning "Check SOFTUART_TIMERTOP"
 #endif
 
-#define SOFTUART_IN_BUF_SIZE     32
+// Variablen fuer SUART Buffer
+#define softuart_BufferLen	4
+uint8_t softuart_BufferPos;
+uint8_t softuart_BufferFull;
+char softuart_Buffer[softuart_BufferLen];
+
+
+#define SOFTUART_IN_BUF_SIZE     16
 
 // Init the Software Uart
 void softuart_init(void);
@@ -84,3 +91,16 @@ void softuart_puts_p( const char *prg_s );
 // Helper-Macro - "automaticly" inserts PSTR
 // when used: include avr/pgmspace.h before this include-file
 #define softuart_puts_P(s___) softuart_puts_p(PSTR(s___))
+
+// Fills buffer
+void softuart_buffer (void);
+
+// send stuff
+void softuart_sendACK (void);
+void softuart_sendNAK (void);
+void softuart_sendAlive (void);
+void softuart_sendStatus (void);
+
+// timer
+uint8_t timer_prescaler;
+uint8_t timer_prescaler2;

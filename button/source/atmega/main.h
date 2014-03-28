@@ -7,18 +7,21 @@
 #define LED_TOGGLE(LED) (PORTB ^=  (1<<(LED)))
 #define LED1            PB0
 #define LED2            PB1
-//#define SUMMER          PB2
+//#define SUMMER          PD7
 #define TASTER1         PB2
-//#define TASTER2         PB4
-//#define TASTER3         PB5
-//#define SUART_TX		PB4			// do not use!
-//#define SUART_RX		PB3
+/*#define TASTER2         PD3
+#define TASTER3         PD4*/
+
+
+
+
+
+uint8_t status;
+uint8_t blinken;
+
+
+
+
 
 #define IS_HIGH(PORT)   (PINB & (1<<(PORT)))
 #endif
-
-
-
-
-// allgemeiner Krams
-volatile uint8_t blinken;

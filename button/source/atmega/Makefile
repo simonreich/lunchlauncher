@@ -52,7 +52,7 @@ TARGET = main
 
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC =  $(TARGET).c timer.c softuart.c
+SRC =  $(TARGET).c softuart.c
 
 
 # List Assembler source files here.
@@ -178,7 +178,6 @@ LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
 # to get a full listing.
 #
 AVRDUDE_PROGRAMMER = usbasp
-AVRDUDE_PROGRAMMER = ponyser
 
 # com1 = serial port. Use lpt1 to connect to parallel port.
 AVRDUDE_PORT = /dev/ttyUSB0    # programmer connected to serial device

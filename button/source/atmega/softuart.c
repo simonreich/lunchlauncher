@@ -98,6 +98,7 @@ V0.3
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 
+#include "main.h"
 #include "softuart.h"
 
 #define SU_TRUE 1
@@ -125,6 +126,20 @@ volatile static unsigned short internal_tx_buffer; /* ! mt: was type uchar - thi
 
 ISR(SOFTUART_T_COMP_LABEL)
 {
+	timer_prescaler++;
+
+	if (timer_prescaler >= 145)
+	{
+		timer_prescaler = 0;
+		timer_prescaler2++;
+
+		if (timer_prescaler >= 1)
+		{
+			timer_prescaler2 = 0;
+			LED_TOGGLE (LED2);
+		};
+	};
+
 	static unsigned char flag_rx_waiting_for_stop_bit = SU_FALSE;
 	static unsigned char rx_mask;
 	
@@ -222,6 +237,9 @@ static void avr_timer_init(void)
 	SOFTUART_T_CNT_REG = 0; /* reset counter */
 	
 	SREG = sreg_tmp;
+
+	// Timer
+	timer_prescaler = 0;
 }
 
 void softuart_init( void )
@@ -236,6 +254,9 @@ void softuart_init( void )
 	// timer_set( BAUD_RATE );
 	// set_timer_interrupt( timer_isr );
 	avr_timer_init(); // replaces the two calls above
+
+	// Output Buffer
+	softuart_BufferPos = 0;
 }
 
 static void idle(void)
@@ -316,3 +337,50 @@ void softuart_puts_p( const char *prg_s )
 	}
 }
 
+void softuart_buffer (void)
+{
+	softuart_Buffer[softuart_BufferPos] = softuart_getchar ();
+	softuart_BufferPos++;
+
+	if (softuart_BufferPos >= softuart_BufferLen)
+	{
+		softuart_BufferPos = 0;
+		softuart_BufferFull = 1;
+	};
+};
+
+
+void softuart_sendACK (void)
+{
+	char checksum = ~('A' + 'C' + 'K');
+	softuart_putchar ('A');
+	softuart_putchar ('C');
+	softuart_putchar ('K');
+	softuart_putchar (checksum);
+}
+void softuart_sendNAK (void)
+{
+	char checksum = ~('N' + 'A' + 'K');
+	softuart_putchar ('N');
+	softuart_putchar ('A');
+	softuart_putchar ('K');
+	softuart_putchar (checksum);
+}
+void softuart_sendAlive (void)
+{
+	char checksum = ~('A' + ' ' + ' ');
+	softuart_putchar ('A');
+	softuart_putchar (' ');
+	softuart_putchar (' ');
+	softuart_putchar (checksum);
+}
+void softuart_sendStatus (void)
+{
+	char ishighLED = IS_HIGH (LED1);
+	char ishighTaster = IS_HIGH (TASTER1);
+	char checksum = ~('T' + ishighLED + ishighTaster);
+	softuart_putchar ('T');
+	softuart_putchar (ishighLED);
+	softuart_putchar (ishighTaster);
+	softuart_putchar (checksum);
+}

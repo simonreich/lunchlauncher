@@ -1,76 +1,137 @@
-#define F_CPU 9600000
+/* 
+	AVR Software-Uart Demo-Application 
+	Version 0.3, 4/2007
+	
+	by Martin Thomas, Kaiserslautern, Germany
+	<eversmith@heizung-thomas.de>
+	http://www.siwawi.arubi.uni-kl.de/avr_projects
+*/
 
+/* 
+Test environment/settings: 
+- avr-gcc 4.1.1/avr-libc 1.4.5 (WinAVR 1/2007)
+- Atmel ATtiny85 @ 1MHz internal R/C
+- 2400bps
 
-#include <avr/io.h>
+AVR Memory Usage (-Os)
+----------------
+Device: attiny85
+
+Program:     874 bytes (10.7% Full)
+(.text + .data + .bootloader)
+
+Data:         52 bytes (10.2% Full)
+(.data + .bss + .noinit)
+
+*/
+
+// #define WITH_STDIO_DEMO
+
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <util/delay.h>
-#include "main.h"
 #include "softuart.h"
-#include "timer.h"
+#include "main.h"
 
 
 
 
-
-// interface between avr-libc stdio and the modified Fleury uart-lib:
-static int my_stdio_putchar( char c, FILE *stream )
+int main(void)
 {
-	if ( c == '\n' ) {
-		softuart_putchar( '\r' );
-	}
-	softuart_putchar( c );
-
-	return 0;
-}
-FILE suart_stream = FDEV_SETUP_STREAM( my_stdio_putchar, NULL, _FDEV_SETUP_WRITE );
-
-
-
-
-
-int main (void)
-{
-	// DDR setzen
-	DDRB &= ~(1<<TASTER1);		// Prot B ist Eingang
-	DDRB |= (1<<LED1);			// Port B ist Ausgang
+	DDRB &= ~(1<<TASTER1);          // Port B ist Eingang
+	DDRB |= (1<<LED1);              // Port B ist Ausgang
 	DDRB |= (1<<LED2);
 
-	// Grundzustand initialisieren
 	LED_AUS(LED1);
 	LED_AUS(LED2);
-	LED_AUS(SUART_TX);
 
-	blinken = 1;
+	unsigned short cnt = 0;
 
- 	// Interrupts aktivieren
-	sei();
-
-	// setup timer
-	//init_timer();
-	//timer_wert = 500;
-
-	// setup suart
+	// initialisiere softuart
 	softuart_init();
 	softuart_turn_rx_on(); /* redundant - on by default */
-
-	// Main Loop
-	char c;
-	while (1)
-	{
 	
-		if ( softuart_kbhit() ) {
+	sei();
+	
+	softuart_puts( "--\r\n" );  // string "from RAM"
+
+	// set status
+	status = 0;			// keep alive sent
+	softuart_sendAlive ();
+	LED_AN (LED1);
+
+
+	
+	for (;;) 
+	{
+		// ein softuart char liegt an
+		if (softuart_kbhit ())
+		{
+			// char abholen
+			softuart_buffer ();
+		};
+
+		if (softuart_BufferFull == 1)
+		{
+			softuart_putchar( '[' );
+			softuart_puts( softuart_Buffer );
+			softuart_putchar( ']' );
+
+			// ACK received
+			if (softuart_Buffer[0] == 'A' && softuart_Buffer[1] == 'C' && softuart_Buffer[2] == 'K')
+			{
+				if (status == 0)			// ALive
+				{
+					status = -1;
+				} else if (status == 1) {		// Get Status
+					status = -1;
+				};
+			};
+
+			// Get Status received
+			if (softuart_Buffer[0] == 'G' && softuart_Buffer[1] == ' ' && softuart_Buffer[2] == ' ')
+			{
+				// Send Status
+				softuart_sendStatus ();
+				status = 1;
+			};
+
+			// Set Status received
+			if (softuart_Buffer[0] == 'S')
+			{
+				if (softuart_Buffer[2] == '2')
+				{
+					blinken = 1;
+					softuart_sendACK ();
+				} else if (softuart_Buffer[2] == '1') {
+					LED_AN (LED1);
+					softuart_sendACK ();
+				} else if (softuart_Buffer[2] == '0') {
+					LED_AUS (LED1);
+					softuart_sendACK ();
+				} else {
+					softuart_sendNAK ();
+				};
+
+
+				status = -1;
+			};
+			softuart_BufferFull = 0;
+		};
+	
+		/*if ( softuart_kbhit() ) {
 			c = softuart_getchar();
 			softuart_putchar( '[' );
 			softuart_putchar( c );
 			softuart_putchar( ']' );
-		}
+		}*/
 
-		softuart_puts_P( " Hello " );
+		cnt++;
+		if (cnt >= 400000) {
+			cnt = 0;
+			softuart_puts_P( " Hello " );
+		};
+		
 	}
- 
-	return(0);
+	
+	return 0;
 }
