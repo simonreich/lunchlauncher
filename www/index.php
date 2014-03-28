@@ -75,8 +75,19 @@
 	$mailNotification =false;
 
 	// check if there are information in the url = GET
-	$newname = $_GET["name"];
-	$newtext = $_GET["text"];
+	if (isset ($_GET["name"]))
+	{
+		$newname = $_GET["name"];
+	} else {
+		$newname = '';
+	};
+	if (isset ($_GET["text"]))
+	{
+		$newtext = $_GET["text"];
+	} else {
+		$newtext = '';
+	};
+	$newtextArray = (array) null;
 	if ($newname != "" && $newtext != "" )
 	{
 		$newtextArray[$newname] = $newtext;
@@ -86,8 +97,18 @@
 	};
 
 	// check if there are information posted in the form
-	$newname = $_POST["name"];
-	$newtext = $_POST["text"];
+	if (isset ($_POST["name"]))
+	{
+		$newname = $_POST["name"];
+	} else {
+		$newname = '';
+	};
+	if (isset ($_POST["text"]))
+	{
+		$newtext = $_POST["text"];
+	} else {
+		$newtext = '';
+	};
 	if ($newname != "" && $newtext != "" )
 	{
 		$newtextArray[$newname] = $newtext;
@@ -111,6 +132,7 @@
 	// delete old messages in file
 	// open file
 	$handle = @fopen ($fileLunchlist, "r");
+	$text = '';
 	if ($handle)
 	{
 		// read line by line
@@ -150,13 +172,20 @@
 	// Mail Notification
 
 	// check if we want to remove an email address
-	$mailRemove[] = $_POST["mailremove"];
-	$mailRemove[] = $_GET["mailremove"];
+	$mailRemove = (array) null;
+	$mailAdd = (array) null;
+	if (isset ($_POST["mailremove"]))
+		$mailRemove[] = $_POST["mailremove"];
+	if (isset ($_GET["mailremove"]))
+		$mailRemove[] = $_GET["mailremove"];
 
 	// check if we want to add an email
-	$mailAdd[] = $_POST["mailadd"];
-	$mailAdd[] = $_GET["mailadd"];
+	if (isset ($_POST["mailadd"]))
+		$mailAdd[] = $_POST["mailadd"];
+	if (isset ($_GET["mailadd"]))
+		$mailAdd[] = $_GET["mailadd"];
 
+	$maillist = '';
 	foreach ($mailAdd as $newmail)
 	{
 		// sanity check
@@ -176,10 +205,10 @@
 			$bufferSearch = str_replace (array("\n","\r"), '', $buffer);
 
 			// check if mail address already exists
-			if (!in_array (${bufferSearch}, $mailAdd))
+			if (!in_array ($bufferSearch, $mailAdd))
 			{
 				// check if mail should be removed from list
-				if (!in_array (${bufferSearch}, $mailRemove))
+				if (!in_array ($bufferSearch, $mailRemove))
 				{
 					$maillist = "${maillist}$buffer";
 				};
