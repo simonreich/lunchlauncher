@@ -96,7 +96,7 @@ V0.3
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <avr/pgmspace.h>
+//#include <avr/pgmspace.h>
 
 #include "main.h"
 #include "softuart.h"
@@ -128,15 +128,40 @@ ISR(SOFTUART_T_COMP_LABEL)
 {
 	timer_prescaler++;
 
-	if (timer_prescaler >= 145)
+	if (timer_prescaler >= 241)
 	{
 		timer_prescaler = 0;
-		timer_prescaler2++;
+		timer_prescalerBlinken++;
+		timer_prescalerBuffer++;
+		timer_prescalerResend++;
 
-		if (timer_prescaler >= 1)
+		if (timer_prescalerBlinken >= 5)
 		{
-			timer_prescaler2 = 0;
-			LED_TOGGLE (LED2);
+			timer_prescalerBlinken = 0;
+
+			if (blinken == 1)
+			{
+				LED_TOGGLE (LED1);
+			};
+		};
+
+		if (timer_prescalerBuffer >= 60)
+		{
+			timer_prescalerBuffer = 0;
+
+			softuart_BufferPos = 0;
+			softuart_BufferFull = 0;
+		};
+
+		if (timer_prescalerResend >= 240)
+		{
+			timer_prescalerResend = 0;
+
+			if (status != 0) 				// Get Status
+			{
+				// Send Status
+				softuart_sendStatus ();
+			};
 		};
 	};
 
@@ -212,14 +237,6 @@ ISR(SOFTUART_T_COMP_LABEL)
 	}
 }
 
-static void avr_io_init(void)
-{
-	// TX-Pin as output
-	SOFTUART_TXDDR |=  ( 1 << SOFTUART_TXBIT );
-	// RX-Pin as input
-	SOFTUART_RXDDR &= ~( 1 << SOFTUART_RXBIT );
-}
-
 static void avr_timer_init(void)
 {
 	unsigned char sreg_tmp;
@@ -240,6 +257,9 @@ static void avr_timer_init(void)
 
 	// Timer
 	timer_prescaler = 0;
+	timer_prescalerBlinken = 0;
+	timer_prescalerBuffer = 0;
+	timer_prescalerResend = 0;
 }
 
 void softuart_init( void )
@@ -249,7 +269,11 @@ void softuart_init( void )
 	flag_rx_off   = SU_FALSE;
 	
 	set_tx_pin_high(); /* mt: set to high to avoid garbage on init */
-	avr_io_init();
+
+	// TX-Pin as output
+	SOFTUART_TXDDR |=  ( 1 << SOFTUART_TXBIT );
+	// RX-Pin as input
+	SOFTUART_RXDDR &= ~( 1 << SOFTUART_RXBIT );
 
 	// timer_set( BAUD_RATE );
 	// set_timer_interrupt( timer_isr );
@@ -266,15 +290,15 @@ static void idle(void)
 	// add watchdog-reset here if needed
 }
 
-void softuart_turn_rx_on( void )
+/*void softuart_turn_rx_on( void )
 {
 	flag_rx_off = SU_FALSE;
-}
+}*/
 
-void softuart_turn_rx_off( void )
+/*void softuart_turn_rx_off( void )
 {
 	flag_rx_off = SU_TRUE;
-}
+}*/
 
 char softuart_getchar( void )
 {
@@ -296,16 +320,16 @@ unsigned char softuart_kbhit( void )
 	return( qin != qout );
 }
 
-void softuart_flush_input_buffer( void )
+/*void softuart_flush_input_buffer( void )
 {
 	qin  = 0;
 	qout = 0;
-}
+}*/
 	
-unsigned char softuart_can_transmit( void ) 
+/*unsigned char softuart_can_transmit( void ) 
 {
 	return ( flag_tx_ready );
-}
+}*/
 
 void softuart_putchar( const char ch )
 {
@@ -321,26 +345,28 @@ void softuart_putchar( const char ch )
 	flag_tx_ready      = SU_TRUE;
 }
 	
-void softuart_puts( const char *s )
+/*void softuart_puts( const char *s )
 {
 	while ( *s ) {
 		softuart_putchar( *s++ );
 	}
-}
+}*/
 	
-void softuart_puts_p( const char *prg_s )
+/*void softuart_puts_p( const char *prg_s )
 {
 	char c;
 
 	while ( ( c = pgm_read_byte( prg_s++ ) ) ) {
 		softuart_putchar(c);
 	}
-}
+}*/
 
 void softuart_buffer (void)
 {
 	softuart_Buffer[softuart_BufferPos] = softuart_getchar ();
 	softuart_BufferPos++;
+
+	timer_prescalerBuffer = 0;
 
 	if (softuart_BufferPos >= softuart_BufferLen)
 	{
@@ -352,35 +378,35 @@ void softuart_buffer (void)
 
 void softuart_sendACK (void)
 {
-	char checksum = ~('A' + 'C' + 'K');
 	softuart_putchar ('A');
 	softuart_putchar ('C');
 	softuart_putchar ('K');
-	softuart_putchar (checksum);
 }
 void softuart_sendNAK (void)
 {
-	char checksum = ~('N' + 'A' + 'K');
 	softuart_putchar ('N');
 	softuart_putchar ('A');
 	softuart_putchar ('K');
-	softuart_putchar (checksum);
-}
-void softuart_sendAlive (void)
-{
-	char checksum = ~('A' + ' ' + ' ');
-	softuart_putchar ('A');
-	softuart_putchar (' ');
-	softuart_putchar (' ');
-	softuart_putchar (checksum);
 }
 void softuart_sendStatus (void)
 {
-	char ishighLED = IS_HIGH (LED1);
-	char ishighTaster = IS_HIGH (TASTER1);
-	char checksum = ~('T' + ishighLED + ishighTaster);
+	timer_prescalerResend = 0;
 	softuart_putchar ('T');
-	softuart_putchar (ishighLED);
-	softuart_putchar (ishighTaster);
-	softuart_putchar (checksum);
+
+	if (blinken == 1)
+	{
+		softuart_putchar ('2');
+	} else if (IS_HIGH (LED1)) {
+		softuart_putchar ('1');
+	} else {
+		softuart_putchar ('0');
+	};
+	if (buttonPressed == 1)
+	{
+		softuart_putchar ('1');
+	} else {
+		softuart_putchar ('0');
+	};
+
+	blinkenLED (1);
 }

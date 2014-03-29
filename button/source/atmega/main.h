@@ -18,10 +18,13 @@
 
 uint8_t status;
 uint8_t blinken;
+uint8_t buttonPressed;
 
 
 
 
+
+void blinkenLED (int blinkenStatus);
 
 #define IS_HIGH(PORT)   (PINB & (1<<(PORT)))
 #endif

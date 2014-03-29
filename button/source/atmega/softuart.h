@@ -49,7 +49,7 @@
 #endif
 
 // Variablen fuer SUART Buffer
-#define softuart_BufferLen	4
+#define softuart_BufferLen	3
 uint8_t softuart_BufferPos;
 uint8_t softuart_BufferFull;
 char softuart_Buffer[softuart_BufferLen];
@@ -61,7 +61,7 @@ char softuart_Buffer[softuart_BufferLen];
 void softuart_init(void);
 
 // Clears the contents of the input buffer.
-void softuart_flush_input_buffer( void );
+//void softuart_flush_input_buffer( void );
 
 // Tests whether an input character has been received.
 unsigned char softuart_kbhit( void );
@@ -70,27 +70,26 @@ unsigned char softuart_kbhit( void );
 char softuart_getchar( void );
 
 // To check if transmitter is busy
-unsigned char softuart_can_transmit( void );
+//unsigned char softuart_can_transmit( void );
 
 // Writes a character to the serial port.
 void softuart_putchar( const char );
 
 // Turns on the receive function.
-void softuart_turn_rx_on( void );
+//void softuart_turn_rx_on( void );
 
 // Turns off the receive function.
-void softuart_turn_rx_off( void );
+//void softuart_turn_rx_off( void );
 
 // Write a NULL-terminated string from RAM to the serial port
-void softuart_puts( const char *s );
+//void softuart_puts( const char *s );
 
 // Write a NULL-terminated string from program-space (flash) 
 // to the serial port. i.e. softuart_puts_p(PSTR("test"))
-void softuart_puts_p( const char *prg_s );
+//void softuart_puts_p( const char *prg_s );
 
 // Helper-Macro - "automaticly" inserts PSTR
 // when used: include avr/pgmspace.h before this include-file
-#define softuart_puts_P(s___) softuart_puts_p(PSTR(s___))
 
 // Fills buffer
 void softuart_buffer (void);
@@ -98,9 +97,10 @@ void softuart_buffer (void);
 // send stuff
 void softuart_sendACK (void);
 void softuart_sendNAK (void);
-void softuart_sendAlive (void);
 void softuart_sendStatus (void);
 
 // timer
 uint8_t timer_prescaler;
-uint8_t timer_prescaler2;
+uint8_t timer_prescalerBlinken;
+uint8_t timer_prescalerBuffer;
+uint8_t timer_prescalerResend;

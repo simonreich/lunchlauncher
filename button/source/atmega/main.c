@@ -28,7 +28,7 @@ Data:         52 bytes (10.2% Full)
 // #define WITH_STDIO_DEMO
 
 #include <avr/interrupt.h>
-#include <avr/pgmspace.h>
+#include <avr/wdt.h>
 #include "softuart.h"
 #include "main.h"
 
@@ -39,30 +39,29 @@ int main(void)
 {
 	DDRB &= ~(1<<TASTER1);          // Port B ist Eingang
 	DDRB |= (1<<LED1);              // Port B ist Ausgang
-	DDRB |= (1<<LED2);
-
-	LED_AUS(LED1);
-	LED_AUS(LED2);
-
-	unsigned short cnt = 0;
 
 	// initialisiere softuart
 	softuart_init();
-	softuart_turn_rx_on(); /* redundant - on by default */
 	
-	sei();
-	
-	softuart_puts( "--\r\n" );  // string "from RAM"
+	// init variables
+	buttonPressed = 0;
 
-	// set status
-	status = 0;			// keep alive sent
-	softuart_sendAlive ();
-	LED_AN (LED1);
+	// interrupts ein
+	sei ();
 
+	// Activate Watchdog
+	WDTCR |= (1<<WDP3) | (1<<WDP0);				// ca. 8 sec
+	WDTCR |= (1<<WDE);							// Watch Dog Enable
 
-	
+	// sende Alive Paket
+	softuart_sendStatus ();
+	status = 2;
+
 	for (;;) 
 	{
+		// reset watchdog
+		wdt_reset();
+
 		// ein softuart char liegt an
 		if (softuart_kbhit ())
 		{
@@ -72,18 +71,13 @@ int main(void)
 
 		if (softuart_BufferFull == 1)
 		{
-			softuart_putchar( '[' );
-			softuart_puts( softuart_Buffer );
-			softuart_putchar( ']' );
-
 			// ACK received
 			if (softuart_Buffer[0] == 'A' && softuart_Buffer[1] == 'C' && softuart_Buffer[2] == 'K')
 			{
-				if (status == 0)			// ALive
+				if (status != 0)
 				{
-					status = -1;
-				} else if (status == 1) {		// Get Status
-					status = -1;
+					blinkenLED (0);
+					status = 0;
 				};
 			};
 
@@ -100,7 +94,7 @@ int main(void)
 			{
 				if (softuart_Buffer[2] == '2')
 				{
-					blinken = 1;
+					blinkenLED (1);
 					softuart_sendACK ();
 				} else if (softuart_Buffer[2] == '1') {
 					LED_AN (LED1);
@@ -112,26 +106,41 @@ int main(void)
 					softuart_sendNAK ();
 				};
 
-
-				status = -1;
+				status = 0;
 			};
+
 			softuart_BufferFull = 0;
 		};
-	
-		/*if ( softuart_kbhit() ) {
-			c = softuart_getchar();
-			softuart_putchar( '[' );
-			softuart_putchar( c );
-			softuart_putchar( ']' );
-		}*/
 
-		cnt++;
-		if (cnt >= 400000) {
-			cnt = 0;
-			softuart_puts_P( " Hello " );
+
+		// check if the button is pressed...
+		if (IS_HIGH (TASTER1) && buttonPressed == 0 && status != 2)
+		{
+			status = 2;
+			buttonPressed = 1;
+
+			softuart_sendStatus ();
 		};
-		
-	}
+		if (!IS_HIGH (TASTER1))
+		{
+			buttonPressed = 0;
+		};
+	};
 	
 	return 0;
+}
+
+
+
+
+
+void blinkenLED (int blinkenStatus)
+{
+	if (blinkenStatus == 0)
+	{
+		LED_AUS (LED1);
+		blinken = 0;
+	} else {
+		blinken = 1;
+	};
 }
