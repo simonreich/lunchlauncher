@@ -52,6 +52,7 @@ int main(void)
 	// Activate Watchdog
 	WDTCR |= (1<<WDP3) | (1<<WDP0);				// ca. 8 sec
 	WDTCR |= (1<<WDE);							// Watch Dog Enable
+	//wdt_enable (7);
 
 	// sende Alive Paket
 	softuart_sendStatus ();
@@ -97,10 +98,11 @@ int main(void)
 					blinkenLED (1);
 					softuart_sendACK ();
 				} else if (softuart_Buffer[2] == '1') {
+					blinkenLED (0);
 					LED_AN (LED1);
 					softuart_sendACK ();
 				} else if (softuart_Buffer[2] == '0') {
-					LED_AUS (LED1);
+					blinkenLED (0);
 					softuart_sendACK ();
 				} else {
 					softuart_sendNAK ();
@@ -134,9 +136,9 @@ int main(void)
 
 
 
-void blinkenLED (int blinkenStatus)
+void blinkenLED (uint8_t mode)
 {
-	if (blinkenStatus == 0)
+	if (mode == 0)
 	{
 		LED_AUS (LED1);
 		blinken = 0;

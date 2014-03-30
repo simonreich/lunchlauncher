@@ -96,6 +96,7 @@ V0.3
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/wdt.h>
 //#include <avr/pgmspace.h>
 
 #include "main.h"
@@ -145,7 +146,7 @@ ISR(SOFTUART_T_COMP_LABEL)
 			};
 		};
 
-		if (timer_prescalerBuffer >= 60)
+		if (timer_prescalerBuffer >= 30)
 		{
 			timer_prescalerBuffer = 0;
 
@@ -288,6 +289,8 @@ static void idle(void)
 	// timeout handling goes here 
 	// - but there is a "softuart_kbhit" in this code...
 	// add watchdog-reset here if needed
+	// watchdog reset
+	wdt_reset();
 }
 
 /*void softuart_turn_rx_on( void )
@@ -333,8 +336,11 @@ unsigned char softuart_kbhit( void )
 
 void softuart_putchar( const char ch )
 {
-	while ( flag_tx_ready ) {
-		; // wait for transmitter ready
+	while ( flag_tx_ready )
+	{
+		// watchdog reset
+		wdt_reset();
+		//; // wait for transmitter ready
 		  // add watchdog-reset here if needed;
 	}
 

@@ -24,7 +24,7 @@ uint8_t buttonPressed;
 
 
 
-void blinkenLED (int blinkenStatus);
+void blinkenLED (uint8_t blinkenStatus);
 
 #define IS_HIGH(PORT)   (PINB & (1<<(PORT)))
 #endif
