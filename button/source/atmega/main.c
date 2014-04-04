@@ -38,6 +38,7 @@ Data:         52 bytes (10.2% Full)
 int main(void)
 {
 	DDRB &= ~(1<<TASTER1);          // Port B ist Eingang
+	DDRB &= ~(1<<TASTER2);          // Port B ist Eingang
 	DDRB |= (1<<LED1);              // Port B ist Ausgang
 
 	// initialisiere softuart
@@ -50,12 +51,10 @@ int main(void)
 	sei ();
 
 	// Activate Watchdog
-	WDTCR |= (1<<WDP3) | (1<<WDP0);				// ca. 8 sec
-	WDTCR |= (1<<WDE);							// Watch Dog Enable
-	//wdt_enable (7);
+	wdt_enable (7);
 
 	// sende Alive Paket
-	softuart_sendStatus ();
+	softuart_sendStatus (0);
 	status = 2;
 
 	for (;;) 
@@ -83,10 +82,10 @@ int main(void)
 			};
 
 			// Get Status received
-			if (softuart_Buffer[0] == 'G' && softuart_Buffer[1] == ' ' && softuart_Buffer[2] == ' ')
+			if (softuart_Buffer[0] == 'G')
 			{
 				// Send Status
-				softuart_sendStatus ();
+				softuart_sendStatus (0);
 				status = 1;
 			};
 
@@ -105,13 +104,26 @@ int main(void)
 					blinkenLED (0);
 					softuart_sendACK ();
 				} else {
-					softuart_sendNAK ();
+					softuart_sendNCK ();
 				};
 
 				status = 0;
 			};
 
 			softuart_BufferFull = 0;
+		};
+
+		// this should be in the timer callback
+		// however, sending fails from the callback, so it goes here
+		if (timer_prescalerResend >= 240)
+		{
+			timer_prescalerResend = 0;
+
+			if (status != 0) 				// Get Status
+			{
+				// Send Status
+				softuart_sendStatus (1);
+			};
 		};
 
 
@@ -121,7 +133,7 @@ int main(void)
 			status = 2;
 			buttonPressed = 1;
 
-			softuart_sendStatus ();
+			softuart_sendStatus (0);
 		};
 		if (!IS_HIGH (TASTER1))
 		{

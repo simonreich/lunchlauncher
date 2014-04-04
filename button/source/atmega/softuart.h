@@ -8,11 +8,11 @@
 
 #define SOFTUART_RXPIN   PINB
 #define SOFTUART_RXDDR   DDRB
-#define SOFTUART_RXBIT   PB3
+#define SOFTUART_RXBIT   PB1
 
 #define SOFTUART_TXPORT  PORTB
 #define SOFTUART_TXDDR   DDRB
-#define SOFTUART_TXBIT   PB4
+#define SOFTUART_TXBIT   PB2
 
 #define SOFTUART_T_COMP_LABEL      TIM0_COMPA_vect
 #define SOFTUART_T_COMP_REG        OCR0A
@@ -53,6 +53,8 @@
 uint8_t softuart_BufferPos;
 uint8_t softuart_BufferFull;
 char softuart_Buffer[softuart_BufferLen];
+char softuart_statusLED;
+char softuart_statusButton;
 
 
 #define SOFTUART_IN_BUF_SIZE     16
@@ -96,8 +98,8 @@ void softuart_buffer (void);
 
 // send stuff
 void softuart_sendACK (void);
-void softuart_sendNAK (void);
-void softuart_sendStatus (void);
+void softuart_sendNCK (void);
+void softuart_sendStatus (uint8_t resend);
 
 // timer
 uint8_t timer_prescaler;

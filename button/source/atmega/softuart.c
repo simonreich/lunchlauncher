@@ -153,17 +153,6 @@ ISR(SOFTUART_T_COMP_LABEL)
 			softuart_BufferPos = 0;
 			softuart_BufferFull = 0;
 		};
-
-		if (timer_prescalerResend >= 240)
-		{
-			timer_prescalerResend = 0;
-
-			if (status != 0) 				// Get Status
-			{
-				// Send Status
-				softuart_sendStatus ();
-			};
-		};
 	};
 
 	static unsigned char flag_rx_waiting_for_stop_bit = SU_FALSE;
@@ -290,6 +279,7 @@ static void idle(void)
 	// - but there is a "softuart_kbhit" in this code...
 	// add watchdog-reset here if needed
 	// watchdog reset
+	//wdt_reset();
 	wdt_reset();
 }
 
@@ -340,8 +330,6 @@ void softuart_putchar( const char ch )
 	{
 		// watchdog reset
 		wdt_reset();
-		//; // wait for transmitter ready
-		  // add watchdog-reset here if needed;
 	}
 
 	// invoke_UART_transmit
@@ -388,31 +376,38 @@ void softuart_sendACK (void)
 	softuart_putchar ('C');
 	softuart_putchar ('K');
 }
-void softuart_sendNAK (void)
+void softuart_sendNCK (void)
 {
 	softuart_putchar ('N');
-	softuart_putchar ('A');
+	softuart_putchar ('C');
 	softuart_putchar ('K');
 }
-void softuart_sendStatus (void)
+void softuart_sendStatus (uint8_t resend)
 {
 	timer_prescalerResend = 0;
 	softuart_putchar ('T');
 
-	if (blinken == 1)
+	if (resend == 0)
 	{
-		softuart_putchar ('2');
-	} else if (IS_HIGH (LED1)) {
-		softuart_putchar ('1');
-	} else {
-		softuart_putchar ('0');
-	};
-	if (buttonPressed == 1)
-	{
-		softuart_putchar ('1');
-	} else {
-		softuart_putchar ('0');
+		if (blinken == 1)
+		{
+			softuart_statusLED = '2';
+		} else if (IS_HIGH (LED1)) {
+			softuart_statusLED = '1';
+		} else {
+			softuart_statusLED = '0';
+		};
+		if (buttonPressed == 1)
+		{
+			softuart_statusButton = '1';
+		} else {
+			softuart_statusButton = '0';
+		};
 	};
 
+	softuart_putchar (softuart_statusLED);
+	softuart_putchar (softuart_statusButton);
+
 	blinkenLED (1);
+	resend = 0;
 }

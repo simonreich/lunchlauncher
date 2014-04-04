@@ -5,12 +5,13 @@
 #define LED_AN(LED)     (PORTB |=  (1<<(LED)))
 #define LED_AUS(LED)    (PORTB &= ~(1<<(LED)))
 #define LED_TOGGLE(LED) (PORTB ^=  (1<<(LED)))
-#define LED1            PB0
-#define LED2            PB1
+#define LED1            PB4
+//#define LED2            PB1
 //#define SUMMER          PD7
-#define TASTER1         PB2
-/*#define TASTER2         PD3
-#define TASTER3         PD4*/
+#define TASTER1         PB3
+#define TASTER2         PB0
+/*#define TASTER2         PB1
+#define TASTER3         PB2*/
 
 
 
