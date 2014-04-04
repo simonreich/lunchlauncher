@@ -232,7 +232,7 @@
 		$mailtext = "Dear colleagues,\n\nthe Lunch Launcher has been launched!\n";
 		foreach ($newtextArray as $newname => $newtext)
 		{
-			$mailtext = "${mailtext}${newname} said: \"${newtext}\"\n";
+			$mailtext = "${mailtext}${newname} says: \"${newtext}\"\n";
 		};
 		$mailtext = "${mailtext}\nBon appetit,\n   The Lunch Launcher";
 
