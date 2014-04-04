@@ -1,31 +1,29 @@
-/* 
-	AVR Software-Uart Demo-Application 
-	Version 0.3, 4/2007
-	
-	by Martin Thomas, Kaiserslautern, Germany
-	<eversmith@heizung-thomas.de>
-	http://www.siwawi.arubi.uni-kl.de/avr_projects
+/**
+ * Atmel ATtiny13-20PU Lunch Launcher Button
+ *
+ *  Copyright 2014 by Simon Reich <spam@simonreich.de>
+ *
+ * This file is part of LunchLauncherButton.
+ * 
+ * LunchLauncherButton is free software: you can redistribute 
+ * it and/or modify it under the terms of the GNU General Public 
+ * License as published by the Free Software Foundation, either 
+ * version 3 of the License, or (at your option) any later version.
+ * 
+ * LunchLauncherButton is distributed in the hope that it will 
+ * be useful, but WITHOUT ANY WARRANTY; without even the implied warranty 
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Foobar.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+/*
+ * Set Fuses:
+ * avrdude -p t13 -c usbasp -U lfuse:w:0x7a:m -U hfuse:w:0xfb:m
 */
-
-/* 
-Test environment/settings: 
-- avr-gcc 4.1.1/avr-libc 1.4.5 (WinAVR 1/2007)
-- Atmel ATtiny85 @ 1MHz internal R/C
-- 2400bps
-
-AVR Memory Usage (-Os)
-----------------
-Device: attiny85
-
-Program:     874 bytes (10.7% Full)
-(.text + .data + .bootloader)
-
-Data:         52 bytes (10.2% Full)
-(.data + .bss + .noinit)
-
-*/
-
-// #define WITH_STDIO_DEMO
 
 #include <avr/interrupt.h>
 #include <avr/wdt.h>
@@ -37,9 +35,9 @@ Data:         52 bytes (10.2% Full)
 
 int main(void)
 {
-	DDRB &= ~(1<<TASTER1);          // Port B ist Eingang
-	DDRB &= ~(1<<TASTER2);          // Port B ist Eingang
-	DDRB |= (1<<LED1);              // Port B ist Ausgang
+	DDRB &= ~(1<<TASTER1);          // Taster 1 is Input
+	DDRB &= ~(1<<TASTER2);          // Taster 2 is Input, free in air
+	DDRB |= (1<<LED1);              // LED 1 is Output
 
 	// initialisiere softuart
 	softuart_init();
@@ -57,18 +55,20 @@ int main(void)
 	softuart_sendStatus (0);
 	status = 2;
 
+	// Main Loop
 	for (;;) 
 	{
 		// reset watchdog
 		wdt_reset();
 
-		// ein softuart char liegt an
+		// is there a softuart char available
 		if (softuart_kbhit ())
 		{
-			// char abholen
+			// get char
 			softuart_buffer ();
 		};
 
+		// did we receive 3 chars?
 		if (softuart_BufferFull == 1)
 		{
 			// ACK received
@@ -128,14 +128,14 @@ int main(void)
 
 
 		// check if the button is pressed...
-		if (IS_HIGH (TASTER1) && buttonPressed == 0 && status != 2)
+		if (!IS_HIGH (TASTER1) && buttonPressed == 0 && status != 2)
 		{
 			status = 2;
 			buttonPressed = 1;
 
 			softuart_sendStatus (0);
 		};
-		if (!IS_HIGH (TASTER1))
+		if (IS_HIGH (TASTER1))
 		{
 			buttonPressed = 0;
 		};

@@ -1,4 +1,14 @@
+/**
+ * Atmel ATtiny13-20PU Lunch Launcher Button
+ *
+ *  Copyright 2014 by Simon Reich <spam@simonreich.de>
+ *
+ * This file is part of LunchLauncherButton.
+ */
+
+
 // main.h
+
 
 // LEDs sind active-high geschaltet
 #ifndef SUMMER

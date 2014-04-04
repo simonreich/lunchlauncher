@@ -10,6 +10,12 @@
 // <eversmith@heizung-thomas.de> 
 // http://www.siwawi.arubi.uni-kl.de/avr_projects
 //
+// Adapted by Simon Reich to use ATtiny13-20PU
+// - 3 char Buffer added
+// - send functions added
+//
+// Copyright 2014 Simon Reich
+//
 // AVR-port Version 0.3  4/2007
 //
 // ---------------------------------------------------------------------
