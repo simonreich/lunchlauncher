@@ -124,20 +124,25 @@ int main(void)
 				// Send Status
 				softuart_sendStatus (1);
 			};
+
+			if (buttonPressed == 2)
+			{
+				buttonPressed = 0;
+			};
 		};
 
 
 		// check if the button is pressed...
-		if (!IS_HIGH (TASTER1) && buttonPressed == 0 && status != 2)
+		if (!IS_HIGH (TASTER1) && buttonPressed == 0)
 		{
-			status = 2;
 			buttonPressed = 1;
 
 			softuart_sendStatus (0);
+			status = 2;
 		};
-		if (IS_HIGH (TASTER1))
+		if (IS_HIGH (TASTER1) && buttonPressed == 1)
 		{
-			buttonPressed = 0;
+			buttonPressed = 2;
 		};
 	};
 	

@@ -253,9 +253,9 @@ static void avr_timer_init(void)
 
 	// Timer
 	timer_prescaler = 0;
-	timer_prescalerBlinken = 0;
-	timer_prescalerBuffer = 0;
-	timer_prescalerResend = 0;
+	//timer_prescalerBlinken = 0;
+	//timer_prescalerBuffer = 0;
+	//timer_prescalerResend = 0;
 }
 
 void softuart_init( void )
