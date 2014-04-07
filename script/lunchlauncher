@@ -130,7 +130,7 @@ if [[ ! -d ${LOCAL_ROOTPATH} ]]; then
 fi
 
 ## Download new data
-REMOTE_HOST_ADDRESS="${PROTOCOL}://${REMOTE_HOST}/launchlist.dat1"
+REMOTE_HOST_ADDRESS="${PROTOCOL}://${REMOTE_HOST}/launchlist.dat"
 LOCAL_LIST_NEW=${LOCAL_ROOTPATH}/launchlist_new.dat
 LOCAL_LIST_OLD=${LOCAL_ROOTPATH}/launchlist.dat
 wget --no-check-certificate -q -O ${LOCAL_LIST_NEW} ${REMOTE_HOST_ADDRESS}
