@@ -251,6 +251,29 @@
 
 <h1>Lunch Launcher</h1>
 
+<?php
+	if (count ($mailRemove) > 0)
+	{
+		echo "<h2><font color=\"#FF0000\">Removing the following Mails</font></h2>\n";
+		echo "<ul><font color=\"#FF0000\">\n";
+		foreach ($mailRemove as $mailRemoveItem)
+		{
+			echo "<li>$mailRemoveItem</li>\n";
+		};
+		echo "</font></ul>\n";
+	};
+	if (count ($mailAdd) > 0)
+	{
+		echo "<h2><font color=\"#FF0000\">Adding the following Mails</font></h2>\n";
+		echo "<ul><font color=\"#FF0000\">\n";
+		foreach ($mailAdd as $mailAddItem)
+		{
+			echo "<li>$mailAddItem</li>\n";
+		};
+		echo "</font></ul>\n";
+	};
+?>
+
 <h2>Add Launch</h2>
 <form action="<?php echo $serverFilename; ?>" method="post">
 	<p>Name: <input type="text" name="name" value="<?php echo $setname; ?>"/></p>
