@@ -10,11 +10,17 @@
 
 #include <string>
 
+#include <QtGui/QApplication>
+#include <QtWebKit/QWebView>
+
+
 
 using namespace std;
  
 int main(int argc,char** argv)
 {
+	QApplication app(argc, argv);
+
 	struct termios tio;
 	struct termios stdio;
 	struct termios old_stdio;
@@ -53,13 +59,17 @@ int main(int argc,char** argv)
 	// holds input message
 	char msgBuffer;
 	char msgInput[3];
-	int msgBufferPos = 0;
-	bool msgBufferFull = false;
+	int msgInputPos = 0;
+	bool msgInputFull = false;
+	char msgOutput[3];
+	int msgOutputPos = 0;
 
 	// holds timer
-	clock_t timerStart, timerBuffer;
-	timerStart = clock ();
-	timerBuffer = clock ();
+	clock_t timerAlive, timerBuffer, timerSend;
+	timerAlive = clock ();					// send alive get package after some time
+	timerBuffer = clock ();					// reset buffer after certain time
+	timerSend = clock ();					// launch only possible every amount of minutes...
+	bool timerSendFirsttime = true;
 
 	// global variable
 	int buttonAlive = 0;
@@ -70,36 +80,76 @@ int main(int argc,char** argv)
 		// 1 char arrived
 		if (read (tty_fd, &msgBuffer, 1) > 0)
 		{
-			msgInput[msgBufferPos] = msgBuffer;
+			//printf ("%c\r\n", msgBuffer);
+
+			msgInput[msgInputPos] = msgBuffer;
 			timerBuffer = clock ();
 
-			if (msgBufferPos >= 2)
+			if (msgInputPos >= 2)
 			{
-				msgBufferPos = 0;
-				msgBufferFull = true;
+				msgInputPos = 0;
+				msgInputFull = true;
 			} else {
-				msgBufferPos++;
+				msgInputPos++;
 			};
 		};
 
 		// is buffer full
-		if (msgBufferFull)
+		if (msgInputFull)
 		{
 			// clear buffer
-			msgBufferFull = false;
-			msgBufferPos = 0;
+			msgInputFull = false;
+			msgInputPos = 0;
 
 			//write(STDOUT_FILENO,&buffer,3);
 			if (msgInput[0] == 'T')				// Status arrived
 			{
-				// send ACK
-				write (tty_fd, "ACK",3);
-				printf ("Sending ACK\n");
+				printf (">> Status Arrived");
 
+				if (msgInput[1] == '0')
+				{
+					printf ("\tLED 0");
+				} else if (msgInput[1] == '1') {
+					printf ("\tLED 1");
+				} else if (msgInput[1] == '2'){
+					printf ("tLED 2");
+				};
 				// check for Button
 				if (msgInput[2] == '1')
 				{
-					// TODO: button pressed
+					// Button pressed
+					printf ("\tButton 1 X\r\n");
+
+					// only send one message every two hours
+					printf ("Timer: %i\r\n", (int)(clock ()-timerSend)/CLOCKS_PER_SEC);
+					if ((int)(clock ()-timerSend)/CLOCKS_PER_SEC > 3600 || timerSendFirsttime == true)
+					{
+						printf ("-- Connecting to Internet Server\r\n");
+
+						// reset timer
+						timerSend = clock ();
+
+						// set first time hit to false
+						timerSendFirsttime = false;
+
+						// calling web page
+						/*QWebView* m_pWebView;
+						m_pWebView = new QWebView;
+						m_pWebView->load(QUrl("http://fortknox.physik3.gwdg.de/lunchlauncher/index.php?name=LunchLauncherButton&text=Lunch"));*/
+					};
+
+					// sleep for 2 sec
+					usleep(2000000);
+
+					// send ACK
+					write (tty_fd, "ACK",3);
+					printf ("<< Sending ACK\r\n");
+				} else {
+					printf ("\tButton 0\r\n");
+
+					// send ACK
+					write (tty_fd, "ACK",3);
+					printf ("<< Sending ACK\r\n");
 				};
 
 				buttonAlive = 0;
@@ -111,37 +161,55 @@ int main(int argc,char** argv)
 		};
 
 		// buffer is not full, put timerBuffer is set
-		if (!msgBufferFull && (int)(clock ()-timerBuffer)/CLOCKS_PER_SEC > 2)
+		if (!msgInputFull && (int)(clock ()-timerBuffer)/CLOCKS_PER_SEC > 2)
 		{
 			// clear buffer
-			msgBufferFull = false;
-			msgBufferPos = 0;
+			msgInputFull = false;
+			msgInputPos = 0;
 			
 			// reset timer
 			timerBuffer = clock ();
 		};
 
 		// send Alive packet after some time
-		if ((int)(clock ()-timerStart)/CLOCKS_PER_SEC > 10)
+		if ((int)(clock ()-timerAlive)/CLOCKS_PER_SEC > 600)
 		{
 			// send Get Status
 			write (tty_fd, "G  ", 3);
-			printf ("Sending Get Status\n");
+			printf ("<< Sending Get Status\r\n");
 
 			// reset timer
-			timerStart = clock ();
+			timerAlive = clock ();
 
 			// increase counter
-			buttonALive++;
+			buttonAlive++;
 
 			// is button Alive?
 			if (buttonAlive >= 4)
 			{
-				printf ("Button is dead\n");
+				printf ("-- Button is dead\r\n");
 			};
 		};
 
-		if (read(STDIN_FILENO,&c,1)>0)  write(tty_fd,&c,1);		     // if new data is available on the console, send it to the serial port
+		if (read (STDIN_FILENO, &c, 1) > 0)
+		{
+			msgOutput[msgOutputPos] = c;
+			msgOutputPos++;
+
+			if (msgOutputPos == 3)
+			{
+				printf ("<< Sending %c%c%c\r\n", msgOutput[0], msgOutput[1], msgOutput[2]);
+				write (tty_fd, &msgOutput[0], 1);
+				write (tty_fd, &msgOutput[1], 1);
+				write (tty_fd, &msgOutput[2], 1);
+
+				msgOutput[0] = 0;
+				msgOutput[1] = 0;
+				msgOutput[2] = 0;
+
+				msgOutputPos = 0;
+			}
+		}
 	}
  
 	close(tty_fd);
