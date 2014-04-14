@@ -1,33 +1,98 @@
-#include <termios.h>
+/*
+ * daemonize.c
+ * This example daemonizes a process, writes a few log messages,
+ * sleeps 20 seconds and terminates afterwards.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
 #include <unistd.h>
-#include <time.h> 
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <syslog.h>
 
+
+#include <termios.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <time.h> 
 #include <string.h>
 
 
-#include <string>
-
-#include <QtGui/QApplication>
-#include <QtWebKit/QWebView>
 
 
 
-using namespace std;
- 
-int main(int argc,char** argv)
+
+
+
+
+static void skeleton_daemon()
 {
-	QApplication app(argc, argv);
+	pid_t pid;
+
+	/* Fork off the parent process */
+	pid = fork();
+
+	/* An error occurred */
+	if (pid < 0)
+		exit(EXIT_FAILURE);
+
+	/* Success: Let the parent terminate */
+	if (pid > 0)
+		exit(EXIT_SUCCESS);
+
+	/* On success: The child process becomes session leader */
+	if (setsid() < 0)
+		exit(EXIT_FAILURE);
+
+	/* Catch, ignore and handle signals */
+	//TODO: Implement a working signal handler */
+	signal(SIGCHLD, SIG_IGN);
+	signal(SIGHUP, SIG_IGN);
+
+	/* Fork off for the second time*/
+	pid = fork();
+
+	/* An error occurred */
+	if (pid < 0)
+		exit(EXIT_FAILURE);
+
+	/* Success: Let the parent terminate */
+	if (pid > 0)
+		exit(EXIT_SUCCESS);
+
+	/* Set new file permissions */
+	umask(0);
+
+	/* Change the working directory to the root directory */
+	/* or another appropriated directory */
+	chdir("/");
+
+	/* Close all open file descriptors */
+	int x;
+	for (x = sysconf(_SC_OPEN_MAX); x>0; x--)
+	{
+		close (x);
+	}
+
+	/* Open the log file */
+	openlog ("lunchlauncherdaemon", LOG_PID, LOG_DAEMON);
+}
+
+
+
+int main()
+{
+	skeleton_daemon();
+
+	//QApplication app(argc, argv);
 
 	struct termios tio;
 	struct termios stdio;
 	struct termios old_stdio;
 	int tty_fd;
 	unsigned char c='D';
-
-	std::string terminalName = "/dev/ttyUSB0";
 
 	tcgetattr(STDOUT_FILENO,&old_stdio);
  
@@ -40,7 +105,7 @@ int main(int argc,char** argv)
 	stdio.c_cc[VTIME]=0;
 	tcsetattr(STDOUT_FILENO,TCSANOW,&stdio);
 	tcsetattr(STDOUT_FILENO,TCSAFLUSH,&stdio);
-	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);       // make the reads non-blocking
+	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);	   // make the reads non-blocking
  
 	memset(&tio,0,sizeof(tio));
 	tio.c_iflag=0;
@@ -50,9 +115,9 @@ int main(int argc,char** argv)
 	tio.c_cc[VMIN]=1;
 	tio.c_cc[VTIME]=5;
  
-	tty_fd=open(terminalName.c_str (), O_RDWR | O_NONBLOCK);      
-	cfsetospeed(&tio,B2400);	    // 2400 baud
-	cfsetispeed(&tio,B2400);	    // 2400 baud
+	tty_fd=open("/dev/ttyUSB0", O_RDWR | O_NONBLOCK);	  
+	cfsetospeed(&tio,B2400);		// 2400 baud
+	cfsetispeed(&tio,B2400);		// 2400 baud
  
 	tcsetattr(tty_fd,TCSANOW,&tio);
 
@@ -74,8 +139,11 @@ int main(int argc,char** argv)
 	// global variable
 	int buttonAlive = 0;
 
+	// write to syslog
+	syslog (LOG_NOTICE, "LunchLauncher daemon started.");
+
 	// Main Loop
-	while (c!='q')
+	while (1)
 	{
 		// 1 char arrived
 		if (read (tty_fd, &msgBuffer, 1) > 0)
@@ -104,27 +172,27 @@ int main(int argc,char** argv)
 			//write(STDOUT_FILENO,&buffer,3);
 			if (msgInput[0] == 'T')				// Status arrived
 			{
-				printf (">> Status Arrived");
+				//printf (">> Status Arrived");
 
 				if (msgInput[1] == '0')
 				{
-					printf ("\tLED 0");
+					//printf ("\tLED 0");
 				} else if (msgInput[1] == '1') {
-					printf ("\tLED 1");
+					//printf ("\tLED 1");
 				} else if (msgInput[1] == '2'){
-					printf ("tLED 2");
+					//printf ("tLED 2");
 				};
 				// check for Button
 				if (msgInput[2] == '1')
 				{
 					// Button pressed
-					printf ("\tButton 1 X\r\n");
+					//printf ("\tButton 1 X\r\n");
 
 					// only send one message every two hours
-					printf ("Timer: %i\r\n", (int)(clock ()-timerSend)/CLOCKS_PER_SEC);
+					//printf ("Timer: %i\r\n", (int)(clock ()-timerSend)/CLOCKS_PER_SEC);
 					if ((int)(clock ()-timerSend)/CLOCKS_PER_SEC > 3600 || timerSendFirsttime == true)
 					{
-						printf ("-- Connecting to Internet Server\r\n");
+						//printf ("-- Connecting to Internet Server\r\n");
 
 						// reset timer
 						timerSend = clock ();
@@ -143,13 +211,13 @@ int main(int argc,char** argv)
 
 					// send ACK
 					write (tty_fd, "ACK",3);
-					printf ("<< Sending ACK\r\n");
+					//printf ("<< Sending ACK\r\n");
 				} else {
-					printf ("\tButton 0\r\n");
+					//printf ("\tButton 0\r\n");
 
 					// send ACK
 					write (tty_fd, "ACK",3);
-					printf ("<< Sending ACK\r\n");
+					//printf ("<< Sending ACK\r\n");
 				};
 
 				buttonAlive = 0;
@@ -176,7 +244,7 @@ int main(int argc,char** argv)
 		{
 			// send Get Status
 			write (tty_fd, "G  ", 3);
-			printf ("<< Sending Get Status\r\n");
+			//printf ("<< Sending Get Status\r\n");
 
 			// reset timer
 			timerAlive = clock ();
@@ -187,7 +255,7 @@ int main(int argc,char** argv)
 			// is button Alive?
 			if (buttonAlive >= 4)
 			{
-				printf ("-- Button is dead\r\n");
+				//printf ("-- Button is dead\r\n");
 			};
 		};
 
@@ -198,7 +266,7 @@ int main(int argc,char** argv)
 
 			if (msgOutputPos == 3)
 			{
-				printf ("<< Sending %c%c%c\r\n", msgOutput[0], msgOutput[1], msgOutput[2]);
+				//printf ("<< Sending %c%c%c\r\n", msgOutput[0], msgOutput[1], msgOutput[2]);
 				write (tty_fd, &msgOutput[0], 1);
 				write (tty_fd, &msgOutput[1], 1);
 				write (tty_fd, &msgOutput[2], 1);
@@ -208,12 +276,15 @@ int main(int argc,char** argv)
 				msgOutput[2] = 0;
 
 				msgOutputPos = 0;
-			}
-		}
-	}
- 
+			};
+		};
+	};
+
 	close(tty_fd);
 	tcsetattr(STDOUT_FILENO,TCSANOW,&old_stdio);
- 
+
+	syslog (LOG_NOTICE, "LunchLauncher terminated.");
+	closelog();
+
 	return EXIT_SUCCESS;
-} 
+}
