@@ -2,47 +2,50 @@
 Conversation Status
 --------------------------------------------------------------------------------
 
-Sensor       PC
+Sensor      PC
 
-1234         1234
-TABC   -->   ACKC
-END    <-/
+123         123
+TAB   -->   ACK
+END   <-/
 
 
-1234         1234
-ACKC   <--   SABC
-       \->   END
+123         123
+ACK   <--   SAB
+      \->   END
 
-1234         1234
-SABC   <--   G  C
-       \->   ACK/NACKC
-END    <-/
+123         123
+TAB   <--   G  
+      \->   ACK/NCK
+END   <-/
 
-1234         1234
-A  C   -->   ACKC
-END    <-/
-
-1234         1234
-ACKC   <--   A  C
-       \->   END
 
 --------------------------------------------------------------------------------
 Message Frame
 --------------------------------------------------------------------------------
 
- 8 Byte  8 Byte
-/------\/------\
-1234
-STRING  DATA
-TEXT    AB     C
 
-TEXT = STATUS, SET, GET, ALIVE, ACK, NACK                      Command
+3 Byte Message = 
+	'TAB' STATUS, 
+	'SAB' SET, 
+	'G  ' GET, 
+	'ACK' Acknowledged, 
+	'NCK' Not Acknowledged
+
 A = 0, 1                                                       Button Status
 B = 0, 1, 2                                                    LED Status
-C = 0 - FF                                                     Checksum
+
+A: Button Status
+0 Button open
+1 Button closed
+
+B: LED Status
+0 LED off
+1 LED permanently on
+2 LED blinking o
+
 
 STATUS:
-Is send by Button and stands for "Status Is". It sends the current LED and 
+Is send by Sensor and stands for "Status Is". It sends the current LED and 
 Button status.
 
 SET:
@@ -57,17 +60,6 @@ ALIVE:
 Can be send by PC and Button. It requests information about the alive status of 
 the partner.
 
-A: Button Status
-0 Button open
-1 Button closed
-
-B: LED Status
-0 LED off
-1 LED permanently on
-2 LED blinking o
-
-C: Checksum
-Inverse of sum of all bytes with the checksum byte set to zero.
 
 --------------------------------------------------------------------------------
 Conversation time
