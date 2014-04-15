@@ -1,0 +1,142 @@
+
+#!/bin/bash
+#
+# Script to execute a local alarm based on a downloaded text file
+# 
+# Exits immediately on failure.
+#
+# This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright 2014 Simon Reich
+#
+# The file Kettle_whistle.ogg was downloaded from 
+#  <http://commons.wikimedia.org/wiki/File:Kettle_whistle.ogg> and was 
+#  created by the user Secretlondon under the license 
+#  Creative Commons Attribution-Share Alike 3.0 Unported.
+
+## Changelog ####################################################
+# 07.01.2014
+# Script created
+#
+# 05.03.2014
+# Python support added
+
+## Setup ########################################################
+# 1) Copy script to /usr/bin
+# cp ./lunchlauncher /usr/bin
+# 
+# 2) Set priviliges
+# chmod 755 /usr/bin/lunchlauncher
+# 
+# 3) Create cron job that executes the script
+#   # m		h		dom	mon	dow		user		command
+#   */2 	11-13	*	*	1-5		USERNAME	test -x /usr/bin/lunchlauncher && ( /usr/bin/lunchlauncher >> /var/log/lunchlauncher.log 2>&1 )
+# 	Every two minutes
+#			Between 11-13 o'clock
+#					Every day of month
+#						Every month
+#							On weekday (Monday - Friday)
+# Also creates log file at /var/log/lunchlauncher.log
+# 
+# 4) Configure script as you wish (see setup section below)
+#
+# 5) If you want to use sound (see below) you can use the 
+# file Kettle_whistle.ogg or Kopete_Event.ogg.
+# Create a .lunchlauncher folder in your home directory
+# mkdir ~/.lunchlauncher
+# Copy the file into the new folder
+# cp Kopete_Event.ogg ~/.lunchlauncher/
+# Adapt the path below accordingly.
+
+## Global configuration. ########################################
+## Cron uses HOME=/, set home to /home/USERNAME
+export HOME=/home/sreich
+export DISPLAY=:0
+
+## Server Address
+REMOTE_HOST="fortknox.physik3.gwdg.de/lunchlauncher"
+
+## Connection protocol: Do you want to use http (port 80) or https (port 443)
+## https is only used for encryption here, certification is disabled.
+#PROTOCOL="http"
+PROTOCOL="https"
+
+## Local terminal
+LOCAL_TERMINAL="/dev/ttyUSB0"
+
+## Alarm time
+## Only one alarm every minutes possible
+ALARM_TIME=60
+
+## No configuration after this. #################################
+
+## Setting serial device
+stty -F ${LOCAL_TERMINAL} raw ispeed 2400 ospeed 2400 cs8 -ignpar -cstopb eol 255 eof 255
+stty -F ${LOCAL_TERMINAL} 2400 cs8 cread clocal
+
+## Upload new data
+REMOTE_HOST_ADDRESS="${PROTOCOL}://${REMOTE_HOST}/mail.php?name=LunchLauncherButton&text=Lunch"
+#wget --no-check-certificate -q ${REMOTE_HOST_ADDRESS} > /dev/null
+#if [[ $? != 0 ]]; then
+#	echo "Upload of new data to ${REMOTE_HOST_ADDRESS} failed."
+#    echo "Exiting now."
+#	exit 1
+#fi
+
+## Main Loop
+# Timer for Alive Package
+TIMERALIVE=$((`date +%s` + 10)); 
+while (true)
+do
+	read -n 3 msgIn < ${LOCAL_TERMINAL}
+	echo ${msgIn};
+
+	# Status arrived
+	if [[ ${msgIn:0:1} == "T"  ]]
+	then
+		if [[ ${msgIn:1:1} == "0"  ]]		# LED is off
+		then
+			echo "LED is 0"
+		elif [[ ${msgIn:1:1} == "1"  ]]		# LED is on
+		then
+			echo "LED is 1"
+		elif [[ ${msgIn:1:1} == "2"  ]]		# LED is blinking
+		then
+			echo "LED is 2"
+		fi
+		if [[ ${msgIn:2:1} == "1"  ]]		# Button is on
+		then
+			echo "Button is 1"
+
+			# wait for 2 seconds
+			sleep 2s
+
+			# send ACK
+			echo "ACK" > ${LOCAL_TERMINAL}
+		else
+			# send ACK
+			echo "ACK" > ${LOCAL_TERMINAL}
+		fi
+	fi
+
+	# Send Alive package every so and so minutes
+	if [[ ${TIMERALIVE} -lt `date +%s` ]]
+	then
+		echo "time is up clown";
+	fi;
+done
+
+
+## Exiting normal
+exit 0
