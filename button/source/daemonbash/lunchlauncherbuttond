@@ -1,7 +1,7 @@
 
 #!/bin/bash
 #
-# Script to execute a local alarm based on a downloaded text file
+# Script to contact a server when hardware event via serial interface occurs.
 # 
 # Exits immediately on failure.
 #
@@ -20,44 +20,28 @@
 #
 # Copyright 2014 Simon Reich
 #
-# The file Kettle_whistle.ogg was downloaded from 
-#  <http://commons.wikimedia.org/wiki/File:Kettle_whistle.ogg> and was 
-#  created by the user Secretlondon under the license 
-#  Creative Commons Attribution-Share Alike 3.0 Unported.
-
 ## Changelog ####################################################
-# 07.01.2014
+# 16.04.2014
 # Script created
-#
-# 05.03.2014
-# Python support added
 
 ## Setup ########################################################
 # 1) Copy script to /usr/bin
-# cp ./lunchlauncher /usr/bin
+# cp ./lunchlauncherbuttond /usr/bin
 # 
 # 2) Set priviliges
-# chmod 755 /usr/bin/lunchlauncher
+# chmod 755 /usr/bin/lunchlauncherbuttond
 # 
-# 3) Create cron job that executes the script
-#   # m		h		dom	mon	dow		user		command
-#   */2 	11-13	*	*	1-5		USERNAME	test -x /usr/bin/lunchlauncher && ( /usr/bin/lunchlauncher >> /var/log/lunchlauncher.log 2>&1 )
-# 	Every two minutes
-#			Between 11-13 o'clock
-#					Every day of month
-#						Every month
-#							On weekday (Monday - Friday)
-# Also creates log file at /var/log/lunchlauncher.log
+# 3) Create log file at /var/log/lunchlauncherbuttond.log
+# touch /var/log/lunchlauncherbuttond.log
+# chmod 755 /var/log/lunchlauncherbuttond.log
 # 
 # 4) Configure script as you wish (see setup section below)
 #
-# 5) If you want to use sound (see below) you can use the 
-# file Kettle_whistle.ogg or Kopete_Event.ogg.
-# Create a .lunchlauncher folder in your home directory
-# mkdir ~/.lunchlauncher
-# Copy the file into the new folder
-# cp Kopete_Event.ogg ~/.lunchlauncher/
-# Adapt the path below accordingly.
+# 5) Set up systemd service
+# cp ./lunchlauncherbuttond.service /etc/systemd/system/
+# chmod 755 /etc/systemd/system/lunchlauncherbuttond.service
+# systemctl enable lunchlauncherbuttond.service
+# systemctl start lunchlauncherbuttond.service
 
 ## Global configuration. ########################################
 ## Cron uses HOME=/, set home to /home/USERNAME
@@ -79,64 +63,227 @@ LOCAL_TERMINAL="/dev/ttyUSB0"
 ## Only one alarm every minutes possible
 ALARM_TIME=60
 
+
 ## No configuration after this. #################################
 
-## Setting serial device
-stty -F ${LOCAL_TERMINAL} raw ispeed 2400 ospeed 2400 cs8 -ignpar -cstopb eol 255 eof 255
-stty -F ${LOCAL_TERMINAL} 2400 cs8 cread clocal
 
-## Upload new data
+function OnExit
+{
+	rm -f ${FILEPIDISRUNNING}
+	rm -f ${FILEPIDKEEPALIVECOUNTER}
+	rm -Rf ${LOCAL_ROOTPATH}
+}
+
+
+function KeepAlive
+{
+	# reset counter
+	if [[ -r ${FILEPIDKEEPALIVECOUNTER} ]]
+	then
+		KEEPALIVECOUNTER=`cat ${FILEPIDKEEPALIVECOUNTER}`
+	else
+		KEEPALIVECOUNTER=0
+	fi
+
+	# check if we are still running
+	if [[ -r ${FILEPIDISRUNNING} ]]
+	then
+		ISRUNNING=`cat ${FILEPIDISRUNNING}`
+	else
+		ISRUNNING=0
+	fi
+
+	# thread loop
+	while [[ ${ISRUNNING} == 1 ]]
+	do
+		TIMERCURRENTPRINT=`date`
+
+		# sending get package
+		echo "G  " > ${LOCAL_TERMINAL}
+		echo "${TIMERCURRENTPRINT} << Get Alive"
+
+		# increase keep alive counter
+		if [[ -r ${FILEPIDKEEPALIVECOUNTER} ]]
+		then
+			KEEPALIVECOUNTER=`cat ${FILEPIDKEEPALIVECOUNTER}`
+		fi
+		let "KEEPALIVECOUNTER += 1"
+		echo ${KEEPALIVECOUNTER} > ${FILEPIDKEEPALIVECOUNTER}
+
+		# send message if button does not respond three times
+		if [[ KEEPALIVECOUNTER -gt 3 ]]
+		then
+			echo "${TIMERCURRENTPRINT} Button is Dead. Exiting now."
+			ISRUNNING=0
+			echo 0 > ${FILEPIDISRUNNING}
+			exit 11
+		fi
+
+		# trap if sth happens
+		trap "ISRUNNING=0; OnExit" INT TERM EXIT
+
+		# wait 10 minutes
+		sleep 10m;
+
+		# check if we are still running
+		if [[ -r ${FILEPIDISRUNNING} ]]
+		then
+			ISRUNNING=`cat ${FILEPIDISRUNNING}`
+		else
+			ISRUNNING=0
+		fi
+	done
+}
+
+
+# Setting serial device
+stty -F ${LOCAL_TERMINAL} 2400 cs8 cread clocal
+if [[ $? != 0 ]]
+then
+	echo "Setting serial interface ${LOCAL_TERMINAL} failed. Please check permissions."
+	echo "Exiting now."
+	exit 1
+fi
+
+# Server adress
 REMOTE_HOST_ADDRESS="${PROTOCOL}://${REMOTE_HOST}/mail.php?name=LunchLauncherButton&text=Lunch"
-#wget --no-check-certificate -q ${REMOTE_HOST_ADDRESS} > /dev/null
-#if [[ $? != 0 ]]; then
-#	echo "Upload of new data to ${REMOTE_HOST_ADDRESS} failed."
-#    echo "Exiting now."
-#	exit 1
-#fi
+
+# PID files for keep alive and still running
+LOCAL_ROOTPATH=${HOME}/.lunchlauncherbuttond
+FILEPIDISRUNNING=${LOCAL_ROOTPATH}/isrunning.pid
+FILEPIDKEEPALIVECOUNTER=${LOCAL_ROOTPATH}/buttonalive.pid
+if [[ ! -d ${LOCAL_ROOTPATH} ]]; then
+    mkdir -p ${LOCAL_ROOTPATH}
+	if [[ ! $? == 0 ]]; then
+		echo "There was an error creating the foler ${LOCAL_ROOTPATH}."
+		echo "This folder is needed for configuration files of the script. Please check if you have set the permissions correctly."
+	    echo "Exiting now."
+		exit 2
+	fi
+fi
+
+# write PID files
+echo "1" > ${FILEPIDISRUNNING}
+echo "0" > ${FILEPIDKEEPALIVECOUNTER}
+if [[ ! -r ${FILEPIDISRUNNING} ]]
+then
+	echo "There was an error reading the file ${FILEPIDISRUNNING}."
+    echo "Exiting now."
+	exit 3
+fi
+if [[ ! -r ${FILEPIDKEEPALIVECOUNTER} ]]
+then
+	echo "There was an error reading the file ${FILEPIDKEEPALIVECOUNTER}."
+    echo "Exiting now."
+	exit 4
+fi
+	
+# PID Variable for main loop
+ISRUNNING=1
+
+# Timer
+TIMERCURRENT=`date +%s`;
+TIMERRESEND=$((`date +%s` - 3600));	# connect only once every two hours to the internet, people like to press the button multiple times
+
+# Counter for alive package, send every 10 minutes
+KEEPALIVECOUNTER=0
+KeepAlive &
+
+# Setting trap for anything that could happen
+trap "ISRUNNING=0; OnExit" INT TERM EXIT
 
 ## Main Loop
-# Timer for Alive Package
-TIMERALIVE=$((`date +%s` + 10)); 
-while (true)
+while [[ ${ISRUNNING} == 1 ]]
 do
-	read -n 3 msgIn < ${LOCAL_TERMINAL}
-	echo ${msgIn};
+	read -n 3 MSGIN < ${LOCAL_TERMINAL}
+	if [[ $? != 0 ]]
+	then
+		echo "Using serial interface ${LOCAL_TERMINAL} failed. Please check permissions."
+		echo "Exiting now."
+		ISRUNNING=0
+		echo 0 > ${FILEPIDISRUNNING}
+		exit 5
+	fi
+
+	TIMERCURRENT=`date +%s`;
+	TIMERCURRENTPRINT=`date`
 
 	# Status arrived
-	if [[ ${msgIn:0:1} == "T"  ]]
+	if [[ ${MSGIN:0:1} == "T"  ]]
 	then
-		if [[ ${msgIn:1:1} == "0"  ]]		# LED is off
+		# Button is still alive
+		echo 0 > ${FILEPIDKEEPALIVECOUNTER}
+
+		echo "${TIMERCURRENTPRINT} >> Status"
+
+		if [[ ${MSGIN:1:1} == "0"  ]]		# LED is off
 		then
-			echo "LED is 0"
-		elif [[ ${msgIn:1:1} == "1"  ]]		# LED is on
+			echo "${TIMERCURRENTPRINT}    LED is 0"
+		elif [[ ${MSGIN:1:1} == "1"  ]]		# LED is on
 		then
-			echo "LED is 1"
-		elif [[ ${msgIn:1:1} == "2"  ]]		# LED is blinking
+			echo "${TIMERCURRENTPRINT}    LED is 1"
+		elif [[ ${MSGIN:1:1} == "2"  ]]		# LED is blinking
 		then
-			echo "LED is 2"
+			echo "${TIMERCURRENTPRINT}    LED is 2"
 		fi
-		if [[ ${msgIn:2:1} == "1"  ]]		# Button is on
+		if [[ ${MSGIN:2:1} == "1"  ]]		# Button is on
 		then
-			echo "Button is 1"
+			echo "${TIMERCURRENTPRINT}    Button is 1"
 
-			# wait for 2 seconds
-			sleep 2s
+			# connect to web server
+			if [[ ${TIMERCURRENT}-${TIMERRESEND} -gt 3600 ]]
+			then
+				echo "${TIMERCURRENTPRINT} -- Connecting to Internet"
+				wget --no-check-certificate -qO- ${REMOTE_HOST_ADDRESS} &> /dev/null
+				if [[ $? != 0 ]]; then
+					echo "${TIMERCURRENTPRINT} Upload of new data to ${REMOTE_HOST_ADDRESS} failed."
+					echo "${TIMERCURRENTPRINT} Exiting now."
+					exit 1
+				fi
+
+				TIMERRESEND=`date +%s`
+			fi
 
 			# send ACK
 			echo "ACK" > ${LOCAL_TERMINAL}
+			echo "${TIMERCURRENTPRINT} << ACK"
 		else
+			echo "${TIMERCURRENTPRINT}    Button is 0"
+
 			# send ACK
 			echo "ACK" > ${LOCAL_TERMINAL}
+			echo "${TIMERCURRENTPRINT} << ACK"
 		fi
 	fi
 
-	# Send Alive package every so and so minutes
-	if [[ ${TIMERALIVE} -lt `date +%s` ]]
+	# ACK received
+	if [[ ${MSGIN} == "ACK"  ]]
 	then
-		echo "time is up clown";
-	fi;
+		echo "${TIMERCURRENTPRINT} >> ACK"
+
+		# Button is still alive
+		echo 0 > ${FILEPIDKEEPALIVECOUNTER}
+	fi
+
+	# NCK received
+	if [[ ${MSGIN} == "NCK"  ]]
+	then
+		echo "${TIMERCURRENTPRINT} >> NCK"
+
+		# Button is still alive
+		echo 0 > ${FILEPIDKEEPALIVECOUNTER}
+	fi
+
+	if [[ -r ${FILEPIDISRUNNING} ]]
+	then
+		ISRUNNING=`cat ${FILEPIDISRUNNING}`
+	else
+		ISRUNNING=0
+	fi
 done
 
+# Killing all threads
+OnExit
 
 ## Exiting normal
 exit 0
