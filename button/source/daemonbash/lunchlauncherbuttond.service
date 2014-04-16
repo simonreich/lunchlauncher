@@ -1,0 +1,12 @@
+[Unit]
+Description=LunchLauncher Daemon Service
+After=syslog.target
+
+[Service]
+Type=forking
+ExecStart=/bin/bash lunchlauncherbuttond
+Restart=on-abort
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
