@@ -146,7 +146,7 @@ then
 fi
 
 # Server adress
-REMOTE_HOST_ADDRESS="${PROTOCOL}://${REMOTE_HOST}/mail.php?name=LunchLauncherButton&text=Lunch"
+REMOTE_HOST_ADDRESS="${PROTOCOL}://${REMOTE_HOST}/index.php?name=LunchLauncherButton&text=Lunch"
 
 # PID files for keep alive and still running
 LOCAL_ROOTPATH=${HOME}/.lunchlauncherbuttond
@@ -185,6 +185,12 @@ ISRUNNING=1
 TIMERCURRENT=`date +%s`;
 TIMERRESEND=$((`date +%s` - 3600));	# connect only once every two hours to the internet, people like to press the button multiple times
 
+# Is Service clear to connect to Internet?
+# is set to true by default
+# is set to false after connecting
+# is set to true again after incoming message that button was released, therefore button must be released before being pressed again
+CONNECTTOSERVER=1
+
 # Counter for alive package, send every 10 minutes
 KEEPALIVECOUNTER=0
 KeepAlive &
@@ -206,7 +212,8 @@ do
 	fi
 
 	TIMERCURRENT=`date +%s`;
-	TIMERCURRENTPRINT=`date`
+	#TIMERCURRENTPRINT=`date`
+	TIMERCURRENTPRINT=''
 
 	# Status arrived
 	if [[ ${MSGIN:0:1} == "T"  ]]
@@ -231,7 +238,7 @@ do
 			echo "${TIMERCURRENTPRINT}    Button is 1"
 
 			# connect to web server
-			if [[ ${TIMERCURRENT}-${TIMERRESEND} -gt 3600 ]]
+			if [[ ${TIMERCURRENT}-${TIMERRESEND} -gt 3600 ]] && [[ ${CONNECTTOSERVER} == 1 ]]
 			then
 				echo "${TIMERCURRENTPRINT} -- Connecting to Internet"
 				wget --no-check-certificate -qO- ${REMOTE_HOST_ADDRESS} &> /dev/null
@@ -241,6 +248,8 @@ do
 					exit 1
 				fi
 
+				# set variables accordingly
+				CONNECTTOSERVER=0
 				TIMERRESEND=`date +%s`
 			fi
 
@@ -253,6 +262,9 @@ do
 			# send ACK
 			echo "ACK" > ${LOCAL_TERMINAL}
 			echo "${TIMERCURRENTPRINT} << ACK"
+
+			# Script is allowed to connect to Internet again
+			CONNECTTOSERVER=0
 		fi
 	fi
 

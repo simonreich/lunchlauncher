@@ -1,12 +1,14 @@
 [Unit]
 Description=LunchLauncher Daemon Service
 After=syslog.target
+Wants=dev-ttyUSB0.device
+After=dev-ttyUSB0.device
 
 [Service]
-Type=forking
 ExecStart=/bin/bash lunchlauncherbuttond
-Restart=on-abort
+Restart=no
 KillMode=process
+Type=simple
 
 [Install]
 WantedBy=multi-user.target
