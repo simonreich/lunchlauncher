@@ -8,8 +8,6 @@
 #include <string.h>
 
 
-#include <string>
-
 #include <QtGui/QApplication>
 #include <QtWebKit/QWebView>
 
