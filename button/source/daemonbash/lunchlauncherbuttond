@@ -264,7 +264,7 @@ do
 			echo "${TIMERCURRENTPRINT} << ACK"
 
 			# Script is allowed to connect to Internet again
-			CONNECTTOSERVER=0
+			CONNECTTOSERVER=1
 		fi
 	fi
 
