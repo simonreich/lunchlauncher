@@ -254,8 +254,8 @@
 <?php
 	if (count ($mailRemove) > 0)
 	{
-		echo "<h2><font color=\"#FF0000\">Removing the following Mails</font></h2>\n";
-		echo "<ul><font color=\"#FF0000\">\n";
+		echo "<h2><font color=\"#AA0000\">Removing the following Mails</font></h2>\n";
+		echo "<ul><font color=\"#AA0000\">\n";
 		foreach ($mailRemove as $mailRemoveItem)
 		{
 			echo "<li>$mailRemoveItem</li>\n";
@@ -264,8 +264,8 @@
 	};
 	if (count ($mailAdd) > 0)
 	{
-		echo "<h2><font color=\"#FF0000\">Adding the following Mails</font></h2>\n";
-		echo "<ul><font color=\"#FF0000\">\n";
+		echo "<h2><font color=\"#00AA00\">Adding the following Mails</font></h2>\n";
+		echo "<ul><font color=\"#00AA00\">\n";
 		foreach ($mailAdd as $mailAddItem)
 		{
 			echo "<li>$mailAddItem</li>\n";
@@ -314,7 +314,7 @@
 				$maillistPrint = str_replace(array("\n","\r"), '', $maillistLine);
 				$maillistPrint = str_replace ("@" , " [at] " , $maillistPrint);
 				$maillistPrint = str_replace ('.' , ' [dot] ' , $maillistPrint);
-				echo "$maillistPrint <a href=\"${serverAddress}/${serverFilename}?mailremove=$maillistLine\" title=\"Removes this mail address from the notification list.\">(delete)</a><br>";
+				echo "$maillistPrint <a href=\"${serverAddress}/${serverFilename}?mailremove=$maillistLine\" title=\"Removes this mail address from the notification list.\">(delete)</a><br>\n";
 			};
 		};
 	};
@@ -322,7 +322,7 @@
 
 <h2>Help</h2>
 <h3>Download latest script</h3>
-<p>Please use the public available <a href="https://fortknox.physik3.gwdg.de/gitweb/?p=lunchlauncher.git;a=summary">git Repository</a>.</p>
+<p>Please use the public <a href="https://fortknox.physik3.gwdg.de/gitweb/?p=lunchlauncher.git;a=summary">git Repository</a>.</p>
 <h3>Linux Client</h3>
 <p>There is a Linux client available in the git repository. It utilizes crontab to check for new Launches and is self explanatory.</p>
 <h3>URL Formatting</h3>
@@ -330,7 +330,7 @@
 <ul>
 	<li>Use the following to add a Launch using the name "ExampleName" and the text "ExampleText":<br><?php echo "${serverAddress}/${serverFilename}?name=ExampleName&text=ExampleText"; ?></li>
 	<li>Use the following to add the mail address "user@example.org" to the notification list:<br><?php echo "${serverAddress}/${serverFilename}?mailadd=user@example.org"; ?></li>
-	<li>Use the following to remove the mail address "user@example.org" to the notification list:<br><?php echo "${serverAddress}/${serverFilename}?mailremove=user@example.org"; ?></li>
+	<li>Use the following to remove the mail address "user@example.org" from the notification list:<br><?php echo "${serverAddress}/${serverFilename}?mailremove=user@example.org"; ?></li>
 </ul>
 <p>Example: Add a Launch from a Linux terminal using wget:<br>wget --no-check-certificate <?php echo "${serverAddress}/${serverFilename}?name=ExampleName&text=ExampleText"; ?></p>
 
