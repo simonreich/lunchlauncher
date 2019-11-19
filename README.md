@@ -19,7 +19,7 @@ Schematics are in the `button/eagle` folder:
 
 ![Schematics of button](/button/eagle/schematic.png "Schematics")
 
-The heart is an Atmega Tiny13-20PU, which consumes little power and still offers Soft-UART communication. I added a cheap serial-to-usb adapter to the button, such that the button has only an usb cable. Furthermore, I drilled a holw into the front of the button and inserted an LED, which gives visual feedback to the user.
+The heart is an Atmega Tiny13-20PU, which consumes little power and still offers Soft-UART communication. I added a cheap serial-to-usb adapter to the button, such that the button has only an usb cable (power for the microcontroller is also drawn from the 5V usb power line). Furthermore, I drilled a hole into the front of the button and inserted an LED, which gives visual feedback to the user.
 
 Source code can be found in the folder `button/source/atmega`.
 
